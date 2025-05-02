@@ -1,43 +1,49 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import AOS from 'aos';
-import 'aos/dist/aos.css';
 
-import AnimatedBackground from './components/AnimatedBackground';
 import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
 import TechSection from './components/TechSection';
 import ProjectsSection from './components/ProjectsSection';
 import ContactSection from './components/ContactSection';
+import ParticlesBackground from './components/ParticlesBackground';
+
+const initAOS = async () => {
+  const AOS = (await import('aos')).default;
+  await import('aos/dist/aos.css');
+  AOS.init({ duration: 1000, once: false, offset: 100, delay: 0, throttleDelay: 99 });
+};
 
 export default function Portfolio() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  // Framer Motion: progress bar
+  const [isLoaded, setIsLoaded] = useState(false);
   const { scrollYProgress } = useScroll();
   const scaleX = useTransform(scrollYProgress, [0, 1], [0, 1]);
 
   useEffect(() => {
-    AOS.init({ duration: 1200, once: false });
-  }, []);
+    if (!isLoaded) {
+      initAOS();
+      setIsLoaded(true);
+    }
+    return () => window.AOS?.refresh();
+  }, [isLoaded]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white font-poppins overflow-hidden">
-      
-      {/* Background Animado */}
-      <AnimatedBackground />
+    <div className="min-h-screen bg-slate-900 text-white font-poppins overflow-hidden relative">
+      {/* Fundo de partículas aplicado à toda a página */}
+      <ParticlesBackground />
 
       {/* Barra de progresso de rolagem */}
-      <motion.div 
-        className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-blue-500 z-50" 
+      <motion.div
+        className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-blue-500 z-50"
         style={{ scaleX }}
       />
 
       {/* Navbar */}
       <Navbar isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
 
-      {/* Seções da página */}
+      {/* Seções */}
       <HeroSection />
       <TechSection />
       <ProjectsSection />
