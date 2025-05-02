@@ -85,6 +85,18 @@ Você pode acessar a versão em produção (deploy) do projeto em:
 
 ---
 
+---
+## Configuração do Formulário de Contato
+
+1. Crie uma conta gratuita no Formspree (https://formspree.io) e configure um novo formulário.  
+2. Copie o endpoint gerado (por exemplo: https://formspree.io/f/xyzabc).  
+3. No repositório já existe o arquivo `.env.example`. Copie e renomeie para `.env`.
+4. Abra `.env` e preencha a chave:
+   NEXT_PUBLIC_FORMSPREE_ENDPOINT=https://formspree.io/f/xyzabc  
+5. Verifique se `.env` está listado no `.gitignore`, para não vazar esse segredo no Git.
+
+---
+
 ## Como Contribuir
 
 1. Faça um **fork** deste repositório.

@@ -9,28 +9,28 @@ const projects = [
     title: "AluraBooks",
     description: "Plataforma de e-commerce para livros técnicos com sistema de filtros avançado",
     link: "https://projects-alpha-silk.vercel.app/",
-    tech: ["React", "Next.js", "Tailwind"],
+    tech: ["React", "Styled Components", "State Management"],
     iframe: "https://projects-alpha-silk.vercel.app/"
   },
   {
     title: "AluraSpace",
     description: "Galeria de imagens espaciais com sistema de tags e busca dinâmica",
     link: "https://alura-space-ecru.vercel.app/",
-    tech: ["React", "CSS Modules", "API"],
+    tech: ["React", "CSS Modules"],
     iframe: "https://alura-space-ecru.vercel.app/"
   },
   {
-    title: "AluraCook",
-    description: "Plataforma culinária com cadastro de receitas e passo-a-passo interativo",
+    title: "AluraOlaMundo",
+    description: "Plataforma estilo blogs com posts informativos",
     link: "https://alura-ola-mundo.vercel.app/",
-    tech: ["Next.js", "Firebase", "Auth"],
+    tech: ["React", "React Router"],
     iframe: "https://alura-ola-mundo.vercel.app/"
   },
   {
     title: "AluraFeira",
     description: "E-commerce completo com carrinho de compras e checkout integrado",
     link: "https://alura-feira-two.vercel.app/",
-    tech: ["React", "Redux", "Payment"],
+    tech: ["React", "Context API", "Styled Components"],
     iframe: "https://alura-feira-two.vercel.app/"
   }
 ];
