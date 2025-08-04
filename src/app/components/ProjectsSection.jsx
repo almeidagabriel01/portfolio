@@ -6,6 +6,13 @@ import { FaRegWindowMaximize } from 'react-icons/fa';
 
 const projects = [
   {
+    title: "StoreFlow",
+    description: "E-commerce completo com React + TypeScript consumindo FakeStore API, carrinho dinâmico e checkout multi-etapas com validação",
+    link: "https://store-flow-pink.vercel.app/",
+    tech: ["React", "TypeScript", "Tailwind CSS", "React Hook Form", "Zod", "Context API"],
+    iframe: "https://store-flow-pink.vercel.app/"
+  },
+  {
     title: "AluraBooks",
     description: "Plataforma de e-commerce para livros técnicos com sistema de filtros avançado",
     link: "https://projects-alpha-silk.vercel.app/",
