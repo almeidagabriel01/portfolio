@@ -56,7 +56,7 @@ export default function HeroSection() {
               whileHover={{ scale: 1.03 }}
             >
               <FaGraduationCap className="text-2xl text-purple-400" />
-              <span className="text-xl text-purple-200">Engenharia de Software - 9º Período</span>
+              <span className="text-xl text-purple-200">Engenharia de Software - 10º Período</span>
             </motion.div>
           </motion.div>
 
