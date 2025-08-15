@@ -24,17 +24,32 @@ const techStack = [
 export default function TechSection() {
   return (
     <section className="container mx-auto px-6 py-20" id="tech">
-      <div className="bg-slate-800/50 rounded-3xl p-8 shadow-2xl backdrop-blur-lg">
-        <h2 className="text-4xl font-bold mb-12 text-center bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+      <motion.div 
+        className="bg-slate-800/50 rounded-3xl p-8 shadow-2xl backdrop-blur-lg"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false, amount: 0.3 }}
+        transition={{ duration: 0.8 }}
+      >
+        <motion.h2 
+          className="text-4xl font-bold mb-12 text-center bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent"
+          initial={{ opacity: 0, y: -20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, amount: 0.3 }}
+          transition={{ delay: 0.2, duration: 0.8 }}
+        >
           Stack Tecnológico
-        </h2>
+        </motion.h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
           {techStack.map((tech, index) => (
             <motion.div
               key={index}
               className="group p-6 bg-slate-700/50 rounded-xl hover:bg-slate-700 transition-colors cursor-pointer relative overflow-hidden"
+              initial={{ opacity: 0, scale: 0.8 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: false, amount: 0.3 }}
+              transition={{ delay: 0.4 + index * 0.1, duration: 0.6 }}
               whileHover={{ scale: 1.05 }}
-              data-aos="zoom-in"
             >
               <div className={`text-6xl mb-4 ${tech.color} transition-colors`}>
                 {tech.icon}
@@ -44,7 +59,7 @@ export default function TechSection() {
             </motion.div>
           ))}
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }

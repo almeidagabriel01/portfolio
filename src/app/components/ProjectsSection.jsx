@@ -47,16 +47,25 @@ export default function ProjectsSection() {
 
   return (
     <section className="container mx-auto px-6 py-20" id="projects">
-      <h2 className="text-5xl font-bold mb-16 text-center bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+      <motion.h2 
+        className="text-5xl font-bold mb-16 text-center bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent"
+        initial={{ opacity: 0, y: -20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false, amount: 0.3 }}
+        transition={{ duration: 0.8 }}
+      >
         Experiência Interativa
-      </h2>
+      </motion.h2>
 
       <div className="space-y-24">
         {projects.map((project, index) => (
           <motion.div 
             key={index}
             className="group relative bg-slate-800 rounded-3xl overflow-hidden shadow-2xl hover:shadow-purple-900/30 transition-shadow"
-            data-aos="fade-up"
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: false, amount: 0.3 }}
+            transition={{ delay: index * 0.2, duration: 0.8 }}
             onViewportEnter={() => setActiveProject(index)}
           >
             <div className="flex flex-col lg:flex-row h-[700px] lg:h-[600px]">

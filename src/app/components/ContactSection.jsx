@@ -63,15 +63,23 @@ export default function ContactSection() {
     <section
       className="container mx-auto px-6 py-20"
       id="contact"
-      data-aos="fade-up"
     >
-      <div className="bg-slate-800/50 rounded-3xl p-8 shadow-2xl backdrop-blur-lg">
-        <h2
+      <motion.div 
+        className="bg-slate-800/50 rounded-3xl p-8 shadow-2xl backdrop-blur-lg"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false, amount: 0.3 }}
+        transition={{ duration: 0.8 }}
+      >
+        <motion.h2
           className="text-4xl font-bold mb-12 text-center bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent"
-          data-aos="fade-up"
+          initial={{ opacity: 0, y: -20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, amount: 0.3 }}
+          transition={{ delay: 0.2, duration: 0.8 }}
         >
           Vamos Conversar
-        </h2>
+        </motion.h2>
 
         <form
           ref={formRef}
@@ -83,6 +91,10 @@ export default function ContactSection() {
             whileHover={{ scale: 1.01 }} 
             whileFocus={{ scale: 1.02 }}
             className="relative"
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: false, amount: 0.3 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
           >
             <motion.span 
               className="absolute left-4 top-4 text-slate-400"
@@ -108,6 +120,10 @@ export default function ContactSection() {
             whileHover={{ scale: 1.01 }} 
             whileFocus={{ scale: 1.02 }}
             className="relative"
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: false, amount: 0.3 }}
+            transition={{ delay: 0.6, duration: 0.6 }}
           >
             <motion.span 
               className="absolute left-4 top-4 text-slate-400"
@@ -133,6 +149,10 @@ export default function ContactSection() {
             whileHover={{ scale: 1.01 }} 
             whileFocus={{ scale: 1.02 }}
             className="relative"
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: false, amount: 0.3 }}
+            transition={{ delay: 0.8, duration: 0.6 }}
           >
             <motion.span 
               className="absolute left-4 top-4 text-slate-400"
@@ -166,6 +186,10 @@ export default function ContactSection() {
                            ? 'bg-gradient-to-r from-gray-500 to-gray-600 cursor-not-allowed' 
                            : 'bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-500 hover:to-blue-400'
                        }`}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: false, amount: 0.3 }}
+            transition={{ delay: 1.0, duration: 0.6 }}
             whileHover={status !== 'Enviando...' ? { scale: 1.02, y: -2 } : {}}
             whileTap={status !== 'Enviando...' ? { scale: 0.98 } : {}}
             disabled={status === 'Enviando...'}
@@ -213,7 +237,7 @@ export default function ContactSection() {
             {status}
           </motion.p>
         )}
-      </div>
+      </motion.div>
     </section>
   );
 }
