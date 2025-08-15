@@ -48,14 +48,31 @@ export default function ProjectsSection() {
   return (
     <section className="container mx-auto px-6 py-20" id="projects">
       <motion.h2 
-        className="text-5xl font-bold mb-16 text-center bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent"
-        initial={{ opacity: 0, y: -20 }}
-        whileInView={{ opacity: 1, y: 0 }}
+        className="text-5xl font-bold mb-4 text-center bg-gradient-to-r from-indigo-400 via-purple-400 to-blue-400 bg-clip-text text-transparent tracking-tight"
+        initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
+        whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
         viewport={{ once: false, amount: 0.3 }}
-        transition={{ duration: 0.8 }}
+        transition={{ duration: 0.9, ease: 'easeOut' }}
       >
-        Experiência Interativa
+        Meus Projetos
       </motion.h2>
+      <motion.p
+        className="relative text-base md:text-xl lg:text-2xl mb-16 text-center font-medium bg-clip-text text-transparent"
+        style={{
+          backgroundImage: 'linear-gradient(90deg,var(--tw-gradient-stops))',
+          // Tailwind gradient stops resolved via classes below
+        }}
+        initial={{ opacity: 0, y: 12, filter: 'blur(4px)' }}
+        whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+        animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+        transition={{ backgroundPosition: { duration: 10, repeat: Infinity, ease: 'linear' }, opacity: { duration: 0.8, delay: 0.15 }, y: { duration: 0.8, delay: 0.15 } }}
+        viewport={{ once: false, amount: 0.3 }}
+      >
+        <span className="bg-gradient-to-r from-blue-300 via-purple-300 to-indigo-300 bg-clip-text text-transparent">
+          Interaja em tempo real com cada aplicação incorporada
+        </span>
+        <span className="block mx-auto mt-4 h-px w-40 bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
+      </motion.p>
 
       <div className="space-y-24">
         {projects.map((project, index) => (
