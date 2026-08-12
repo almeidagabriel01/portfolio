@@ -1,0 +1,396 @@
+@import "tailwindcss";
+
+/* `static` porque o Tailwind v4 remove do bundle todo token de `@theme` que
+   nenhuma utility referencia ainda: sem ele `var(--color-black)` resolveria
+   para nada enquanto as seções novas não existem. Custo medido: 35 bytes. */
+@theme static {
+  --font-display: var(--font-switzer);
+  --font-sans: var(--font-switzer);
+  --font-mono: var(--font-geist-mono);
+
+  /**
+   * Passo de espaçamento = 1px.
+   *
+   * O default do Tailwind é `0.25rem` (4px por passo). Com `0.1rem` sobre um
+   * root de 10px, `gap-32` vale 32px e `h-65` vale 65px, ou seja, todo valor
+   * medido em navegador entra aqui **verbatim**, sem aritmética no meio. Ao
+   * longo de oito fases de porte, essa é a diferença entre transcrever e
+   * traduzir; tradução é onde nasce erro de um dígito.
+   *
+   * Consequência: o significado de toda utility numérica de espaçamento mudou.
+   * A conversão dos componentes existentes (×4) foi feita no mesmo commit.
+   */
+  --spacing: 0.1rem;
+
+  /* Os nomes são semânticos, não descritivos: `accent` é a marca gráfica e a cor
+     dos blocos do campo WebGL, `cta` é a cor de interação (botão, nav ativo,
+     e-mail), `ink` é o texto, `line` é a borda. Trocar de paleta é trocar estes
+     valores, e nada mais.
+
+     Os nomes são semânticos (void/surface/line/ink/accent/cta). A v4 usava
+     nomes de cor (`blue`, `orange`), e isso passou a mentir quando a paleta
+     saiu do azul. */
+  --color-black: #000000;
+  --color-surface: #0d0c0b;
+  --color-line: #2a2622;
+  --color-accent: #ff5a1f;
+  --color-ink: #f5e9df;
+
+  /**
+   * Âmbar de **texto sobre o campo**.
+   *
+   * Texto no acento cheio por cima do campo é âmbar sobre âmbar e some. Este tom
+   * mede 4,58:1 contra o pixel mais claro do campo, então passa o piso de 3:1 do
+   * texto grande com folga, e continua lendo como âmbar ao lado do `--color-ink`
+   * do corpo. Use no hero; fora do campo, sobre preto chapado, o
+   * `--color-accent` cheio é o certo.
+   *
+   * **A cor do campo NÃO é `--color-accent`, e não pode ser.** Ela mora em
+   * `CampoDeBlocos.tsx` (`CAMPO_PADRAO.cor`), por duas razões que custaram uma
+   * sessão inteira para achar:
+   *
+   * 1. O `<Canvas>` roda `linear` e `flat` (ver `BackgroundCanvas.tsx`), o que
+   *    desliga a conversão para sRGB na saída. O hex que entra no uniform é
+   *    **linearizado** antes de virar pixel: `#d1400c` sai na tela como
+   *    `rgb(163,13,1)`, medido. Para o campo APARECER numa cor, a entrada tem
+   *    de ser a codificação sRGB dela: `cor: "#d09332"` aparece como `#a04a08`.
+   *    O azul da v4 escapava disso por acidente, porque azul saturado sobrevive
+   *    à linearização; âmbar não, e vira vermelho de alarme.
+   * 2. O campo é o **fundo do texto do hero**, então a luminância dele é um
+   *    orçamento: o `type-eyebrow` em `ink` cheio precisa de 4,5:1 por cima do
+   *    pixel mais claro. Isso trava o campo em no máximo ~3,9:1 contra o preto.
+   *    O acento das marcas gráficas não tem esse teto e por isso é mais vivo.
+   *
+   * Medido em Chrome com GPU, não no headless shell: o WebGL por software dele
+   * devolve o flowmap como poeira vermelha e mente sobre qualquer cor daqui.
+   */
+  --color-accent-soft: #ffd9c0;
+  --color-cta: #ffffff;
+
+  /**
+   * As duas curvas do sistema.
+   *
+   * `--ease-snappy` é a assinatura: aparece em quase toda transição do site e
+   * nas duas keyframes de view transition. Do lado do JS, `OUT_EXPO` e
+   * `OUT_SNAPPY` são a mesma curva, dois nomes para um valor:
+   * `[.19, 1, .22, 1]`. `--ease-out` existe só do lado do CSS, sem contraparte
+   * em JS.
+   */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-snappy: cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+/**
+ * Root de 10px.
+ *
+ * Não é preferência: é o que faz `--spacing: 0.1rem` valer 1px e a escala
+ * `type-m-*` (1.2rem = 12px … 9.6rem = 96px) ser lida na mesma unidade em que
+ * foi medida.
+ *
+ * **`rem` em media query continua resolvendo contra 16px**, não contra este
+ * valor. Os breakpoints não se movem (`md:` segue 768px). É a pegadinha número
+ * um de quem copia esse setup.
+ *
+ * Sem `scroll-behavior: smooth`: o scroll suave nativo disputa o frame com o
+ * Lenis e produz jank intermitente. O Lenis é o único driver.
+ */
+html {
+  font-size: 10px;
+  overscroll-behavior: none;
+  overflow-x: hidden;
+}
+
+:root {
+  /* Dark-only por decisão de design: informa o UA para barra de rolagem e
+     controles nativos nascerem escuros em vez de claros sobre fundo preto. */
+  color-scheme: dark;
+  --background: var(--color-black);
+  --foreground: var(--color-ink);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-display);
+}
+
+/**
+ * Escala tipográfica de display (`type-m-<px>`).
+ *
+ * Substitui os tokens `--text-*` fluidos da v4. A escala não usa `clamp()`:
+ * troca de degrau por breakpoint, e o tracking fica **mais negativo** conforme o
+ * corpo cresce (−0.016rem a 16px, −0.288rem a 96px) enquanto o leading fecha de
+ * 146% para 100%. É esse par que dá a compactação óptica do título grande.
+ */
+@utility type-m-12 {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  line-height: 146%;
+  letter-spacing: -0.016rem;
+}
+@utility type-m-16 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  line-height: 146%;
+  letter-spacing: -0.016rem;
+}
+@utility type-m-20 {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 146%;
+  letter-spacing: -0.02rem;
+}
+@utility type-m-24 {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  line-height: 124%;
+  letter-spacing: -0.072rem;
+}
+@utility type-m-28 {
+  font-family: var(--font-display);
+  font-size: 2.8rem;
+  line-height: 124%;
+  letter-spacing: -0.028rem;
+}
+@utility type-m-32 {
+  font-family: var(--font-display);
+  font-size: 3.2rem;
+  line-height: 106%;
+  letter-spacing: -0.096rem;
+}
+@utility type-m-40 {
+  font-family: var(--font-display);
+  font-size: 4rem;
+  line-height: 124%;
+  letter-spacing: -0.12rem;
+}
+@utility type-m-54 {
+  font-family: var(--font-display);
+  font-size: 5.4rem;
+  line-height: 106%;
+  letter-spacing: -0.162rem;
+}
+@utility type-m-64 {
+  font-family: var(--font-display);
+  font-size: 6.4rem;
+  line-height: 106%;
+  letter-spacing: -0.192rem;
+}
+@utility type-m-96 {
+  font-family: var(--font-display);
+  font-size: 9.6rem;
+  line-height: 100%;
+  letter-spacing: -0.288rem;
+}
+
+/**
+ * Escala mono, sempre caixa alta e com tracking **positivo**, o contraponto
+ * exato da escala de display. Rótulo, botão e legenda vivem aqui.
+ */
+@utility type-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 1.2rem;
+  line-height: 1;
+  letter-spacing: 0.192rem;
+  text-transform: uppercase;
+}
+@utility type-button {
+  font-family: var(--font-mono);
+  font-size: 1.2rem;
+  line-height: 0.8;
+  letter-spacing: 0.072rem;
+  text-transform: uppercase;
+}
+@utility type-sub {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  line-height: 1;
+  letter-spacing: 0.16rem;
+  text-transform: uppercase;
+}
+
+@media (min-width: 80rem) {
+  .type-eyebrow {
+    font-size: 1.4rem;
+    letter-spacing: 0.224rem;
+  }
+}
+@media (min-width: 48rem) {
+  .type-button {
+    font-size: 1.4rem;
+    letter-spacing: 0.084rem;
+  }
+}
+
+/** Empilha filhos na mesma célula de grid, a base da troca de texto do nav. */
+@utility area {
+  grid-area: 1 / 1;
+}
+
+@utility flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/**
+ * Contêiner: 1345px de teto, calhas de 30px (50px em `md`).
+ *
+ * A calha larga mora **dentro** do `@utility` e não numa regra `.w-calc` solta:
+ * assim `md:w-calc` carrega as duas larguras. Com a regra solta, a variante
+ * gerava a classe `md:w-calc`, que o seletor `.w-calc` não casa, e a coluna
+ * ficava com calha de 30px no desktop.
+ */
+@utility w-calc {
+  width: calc(100% - 6rem);
+  max-width: calc(var(--spacing) * 1345);
+  margin-inline: auto;
+
+  @media (width >= 48rem) {
+    width: calc(100% - 10rem);
+  }
+}
+
+/** `<strong>` não engorda: vira azul. A família tem um peso só. */
+@utility strong-accent {
+  & strong {
+    font-weight: inherit;
+    color: var(--color-accent);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-black);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
+/**
+ * O `.shell` não pinta mais fundo nenhum.
+ *
+ * Antes ele era um painel opaco em `z-10` que escondia o canvas em toda parte
+ * menos na primeira tela, com uma exceção por `:has(.hero-bleed)`. Isso deixou
+ * de ser necessário quando o campo passou a ser desenhado por um `<View>` do
+ * drei: o `View` recorta o render do canvas ao retângulo do elemento que segue,
+ * então fora do hero o canvas fica **transparente** e o preto do `<body>` é o
+ * que aparece. Menos CSS, e funciona igual sem JS.
+ *
+ * Ordem de empilhamento, a mesma: canvas em `z-100`, conteúdo em
+ * `z-200`, header em `z-930`.
+ */
+
+/* Foco visível global. O anel padrão do Chrome é escuro e some sobre o preto:
+   navegar por teclado ficava sem indicação nenhuma. */
+:focus-visible {
+  outline: 2px solid var(--color-cta);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Elimina o atraso de 300ms do duplo-toque em toque. */
+a,
+button {
+  touch-action: manipulation;
+}
+
+/**
+ * Transição de página, medida em navegador em 2026-08-11, nos dois viewports
+ * (o gesto é o mesmo nos dois; não há fork de breakpoint).
+ *
+ * O gesto: a página nova **sobe de baixo** cobrindo a viewport em 800ms; a
+ * antiga **não sai**: fica no lugar, cresce 10% e desbota até 50% sobre um
+ * fundo `--color-ink`, que é o que dá o clareado do quadro. Sem esse
+ * fundo no grupo a página antiga só escurece, e o gesto lê como outro.
+ *
+ * `* 1s` é load-bearing: `--duration` é declarado **sem unidade** no `<html>`
+ * (é o botão global de velocidade, e ela também o multiplica no
+ * call site). Sem o `1s` o `calc()` é inválido num slot de duração, a
+ * declaração inteira de `animation` é descartada em silêncio e o browser cai
+ * no crossfade default de 250ms: estado final correto, gesto errado, suíte
+ * verde.
+ */
+/* O caminho de documento, que o `LinkDeRota` não cobre: sem JS o link é um `<a>`
+   cru e a troca de rota é um page load. Esse caso anima também, e
+   é uma linha: as mesmas regras de `::view-transition-*` abaixo servem os
+   dois. Fica fora do `@media` porque o corte sob `reduce` é feito tirando o
+   nome do root, e não desligando a navegação. */
+@view-transition {
+  navigation: auto;
+}
+
+@media not all and (prefers-reduced-motion: reduce) {
+  :root {
+    --view-transition-duration: calc(var(--duration) * 2);
+  }
+
+  /* O header não participa da transição: com nome próprio ele sai do snapshot
+     do root, fica **parado** e faz um crossfade de 250ms no lugar enquanto a
+     página desliza por baixo. Sem isto ele subiria junto com a página nova. */
+  [data-transicao="header"] {
+    view-transition-name: header;
+  }
+
+  /* O painel do menu mobile, pelo mesmo motivo: ele fecha na mesma troca que
+     navega, e sem nome próprio o fechamento vira parte do deslize. */
+  [data-transicao="menu"] {
+    view-transition-name: menu;
+  }
+
+  ::view-transition-group(root),
+  ::view-transition-image-pair(root) {
+    background: var(--color-ink);
+  }
+
+  ::view-transition-old(root) {
+    animation: calc(var(--view-transition-duration) * 1s) var(--ease-snappy)
+      both pagina-sai;
+  }
+
+  ::view-transition-new(root) {
+    animation: calc(var(--view-transition-duration) * 1s) var(--ease-snappy)
+      both pagina-entra;
+  }
+}
+
+/**
+ * Sob `reduce` a troca é um **corte**, e não o crossfade de 250ms que o UA faz
+ * por default. Tirar só a duração não basta: o `calc()` inválido derruba as
+ * regras de `animation` e o browser volta ao crossfade dele.
+ *
+ * Preferência de movimento é requisito (AD-004): sem nome no root não há
+ * snapshot, e não há o que animar.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    view-transition-name: none;
+  }
+}
+
+@keyframes pagina-sai {
+  from {
+    opacity: 1;
+    scale: 1;
+  }
+  to {
+    opacity: 0.5;
+    scale: 1.1;
+  }
+}
+
+@keyframes pagina-entra {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translate(0);
+  }
+}

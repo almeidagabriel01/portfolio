@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!--
+    Ladrilho na superfície escura do site, glifo no acento. É a mesma relação da
+    página: fundo escuro, âmbar como marca gráfica. A versão anterior invertia
+    isso (ladrilho âmbar cheio, glifo vazado em preto) e o bloco laranja pesava
+    mais que o desenho.
+
+    Três decisões, todas por causa de 16px:
+
+    1. **Sem `<text>`.** Uma versão anterior desenhava o glifo com
+       `font-family="monospace"`, ou seja, o favicon virava a fonte mono que a
+       máquina do visitante tivesse. Traçado próprio desenha igual em todo
+       lugar.
+    2. **Sem `feGaussianBlur`.** O halo existia para imitar o neon da v1; a
+       16px ele não lê como brilho, lê como borrão.
+    3. **Ladrilho, não glifo solto.** Define a silhueta na aba e dá ao acento um
+       fundo previsível, em vez de deixá-lo depender do tema do navegador.
+
+    O gradiente vai do acento (`#ff5a1f`) ao mesmo âmbar aberto em ouro
+    (`#ffb02e`), que é a brasa do campo do hero. Os hex estão cravados de
+    propósito: SVG servido como arquivo não enxerga token de CSS.
+
+    Cuidado ao editar este comentário: dois hifens seguidos são ilegais dentro
+    de comentário XML e invalidam o arquivo inteiro em silêncio. Foi assim que
+    citar o nome de um token de cor aqui derrubou o favicon.
+  -->
+  <defs>
+    <linearGradient id="brasa" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff5a1f"/>
+      <stop offset="100%" stop-color="#ffb02e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="256" height="256" rx="56" fill="#0d0c0b"/>
+
+  <g
+    fill="none"
+    stroke="url(#brasa)"
+    stroke-width="19"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <polyline points="99,84 61,128 99,172"/>
+    <line x1="146" y1="86" x2="110" y2="170"/>
+    <polyline points="157,84 195,128 157,172"/>
+  </g>
+</svg>
