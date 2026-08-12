@@ -17,18 +17,38 @@ import { EASE } from "@/lib/motion";
 import { useStore } from "@/store";
 
 /**
- * A grade tem **seis** células em duas fileiras, e é a proporção
- * dela (1340 × 522, painel de 669 × 520 ao lado) que faz o bloco funcionar.
- * Encher com três deixaria metade da altura vazia.
+ * A grade mostra **todos** os projetos, em duas fileiras que são as duas
+ * naturezas do trabalho: as entregas profissionais em cima, os exercícios de
+ * curso embaixo. É a mesma divisão que a descrição da seção já anunciava
+ * ("quatro entregas profissionais [...] e três exercícios de curso"), e é o que
+ * permite as duas fileiras terem larguras de célula diferentes sem parecer
+ * sobra: elas não são a mesma coisa cortada, são dois conjuntos.
  *
- * Entregas profissionais primeiro, estudos completando. Os que sobram vivem em
- * `/projetos`, para onde o botão do painel aponta. Acrescentar um projeto novo
- * ao dado o empurra para dentro da grade sem ninguém editar lista nenhuma.
+ * Antes daqui saía um `.slice(0, 6)` que deixava um estudo de fora, e o rótulo
+ * dizia "Seis projetos publicados" enquanto `/projetos` listava sete.
+ *
+ * **A altura é o que não pode mudar**: duas fileiras de 260 dão os 520 do
+ * painel ao lado, e é essa igualdade que faz o bloco fechar. Um terceiro grupo
+ * exigiria repensar a proporção, não acrescentar uma fileira.
  */
-const NA_GRADE: Project[] = [
-  ...portfolioProjects.filter((project) => project.grupo !== "estudo"),
-  ...portfolioProjects.filter((project) => project.grupo === "estudo"),
-].slice(0, 6);
+const PROFISSIONAIS = portfolioProjects.filter(
+  (project) => project.grupo !== "estudo",
+);
+const ESTUDOS = portfolioProjects.filter(
+  (project) => project.grupo === "estudo",
+);
+const NA_GRADE: Project[] = [...PROFISSIONAIS, ...ESTUDOS];
+
+/**
+ * Quantas células cada fileira tem. O recorte da mídia sai daqui, então as duas
+ * contas nunca divergem do que está na tela.
+ *
+ * **A grade em si é CSS** (`grid-cols-12`, as quatro primeiras em `col-span-3`
+ * e as três últimas em `col-span-4`): classe do Tailwind é texto-fonte, não dá
+ * para montar por template. Mudando o número de projetos de um grupo, é lá que
+ * o span acompanha — e 12 só divide bem por 4 e por 3.
+ */
+const CELULAS_POR_FILEIRA = [PROFISSIONAIS.length, ESTUDOS.length] as const;
 
 /**
  * As transições da célula, que **não** são a mesma de propósito.
@@ -60,25 +80,47 @@ const TRANSICAO_DA_MIDIA = { duration: 0.4, ease: EASE.OUT_SNAPPY } as const;
  */
 const TRANSICAO_DA_ABERTURA = { duration: 0.55, ease: EASE.OUT_SNAPPY } as const;
 
-/** Colunas e linhas da malha. O recorte de abertura sai daqui, não de medição. */
-const COLUNAS = 3;
-const LINHAS = 2;
+const FILEIRAS = CELULAS_POR_FILEIRA.length;
+
+/**
+ * Onde a célula `indice` fica na malha, em fração de 0 a 1: qual fileira e que
+ * faixa horizontal ela ocupa. As fileiras têm contagens diferentes (4 e 3),
+ * então a largura da célula depende de qual delas é.
+ */
+function lugarDaCelula(indice: number) {
+  let fileira = 0;
+  let restante = indice;
+  while (
+    fileira < FILEIRAS - 1 &&
+    restante >= CELULAS_POR_FILEIRA[fileira]
+  ) {
+    restante -= CELULAS_POR_FILEIRA[fileira];
+    fileira++;
+  }
+  const largura = 1 / CELULAS_POR_FILEIRA[fileira];
+  return {
+    fileira,
+    esquerda: restante * largura,
+    largura,
+    topo: fileira / FILEIRAS,
+    altura: 1 / FILEIRAS,
+  };
+}
 
 /**
  * O retângulo da célula `indice`, em `inset()` percentual sobre a malha inteira.
  *
  * É daqui que a mídia **abre**: ela nasce recortada exatamente na célula
- * apontada e cresce até tomar as seis. O gesto óbvio seria entrar só por
- * opacidade; o recorte é acréscimo, e usa a geometria que o bloco já tem em vez de
- * inventar um gesto: a grade abre uma janela, e a janela é a célula que você
- * apontou. Percentual e não pixel: nada a medir, nada a ressincronizar quando a
- * coluna muda de largura.
+ * apontada e cresce até tomar a malha inteira. O gesto óbvio seria entrar só
+ * por opacidade; o recorte é acréscimo, e usa a geometria que o bloco já tem em
+ * vez de inventar um gesto: a grade abre uma janela, e a janela é a célula que
+ * você apontou. Percentual e não pixel: nada a medir, nada a ressincronizar
+ * quando a coluna muda de largura.
  */
 function recorteDaCelula(indice: number): string {
-  const coluna = indice % COLUNAS;
-  const linha = Math.floor(indice / COLUNAS);
+  const { esquerda, largura, topo, altura } = lugarDaCelula(indice);
   const pct = (n: number) => `${(n * 100).toFixed(4)}%`;
-  return `inset(${pct(linha / LINHAS)} ${pct((COLUNAS - coluna - 1) / COLUNAS)} ${pct((LINHAS - linha - 1) / LINHAS)} ${pct(coluna / COLUNAS)})`;
+  return `inset(${pct(topo)} ${pct(1 - esquerda - largura)} ${pct(1 - topo - altura)} ${pct(esquerda)})`;
 }
 
 const RECORTE_ABERTO = "inset(0% 0% 0% 0%)";
@@ -94,10 +136,9 @@ const RECORTE_ABERTO = "inset(0% 0% 0% 0%)";
  * a abertura já sugeria.
  */
 function origemDaCelula(indice: number): string {
-  const coluna = indice % COLUNAS;
-  const linha = Math.floor(indice / COLUNAS);
+  const { esquerda, largura, topo, altura } = lugarDaCelula(indice);
   const pct = (n: number) => `${(n * 100).toFixed(4)}%`;
-  return `${pct((coluna + 0.5) / COLUNAS)} ${pct((linha + 0.5) / LINHAS)}`;
+  return `${pct(esquerda + largura / 2)} ${pct(topo + altura / 2)}`;
 }
 const TRANSICAO_DO_OVERLAY = { duration: 0.3 } as const;
 const TRANSICAO_DO_ROTULO = {
@@ -127,9 +168,9 @@ const LinkAnimado = motion.create(Link);
  * 1. **`emDestaque` é um só, no nível do bloco.** Se cada célula guardasse o
  *    próprio hover, as irmãs não teriam como escurecer e sobraria um card
  *    piscando sozinho.
- * 2. **A mídia é uma só e é irmã da malha**, cobrindo as seis células de uma
+ * 2. **A mídia é uma só e é irmã da malha**, cobrindo todas as células de uma
  *    vez. É isso que faz o hover parecer que a grade abriu uma janela, em vez
- *    de seis janelinhas independentes.
+ *    de sete janelinhas independentes.
  *
  * Não temos wordmark das marcas, e inventar um asset seria mentir sobre elas: o
  * nome ocupa a caixa do logo (20px de altura, 120 de largura).
@@ -194,7 +235,7 @@ export function Entregas() {
   /**
    * Qual das duas apresentações monta a mídia. As duas existem no mesmo DOM e
    * `display:none` **não** impede o browser de baixar e decodificar um
-   * `<video autoplay>`. Sem esta escolha, o desktop carregaria os seis vídeos
+   * `<video autoplay>`. Sem esta escolha, o desktop carregaria os sete vídeos
    * do carrossel além do da célula apontada.
    */
   const ehLargo = useMediaQuery("(min-width: 48rem)");
@@ -237,7 +278,7 @@ export function Entregas() {
         <div className="relative">
           {/*
             A mídia: um vídeo do site rolando, montado no hover, cobrindo as
-            seis células, a mesma construção. Imagem parada lê
+            as células, a mesma construção. Imagem parada lê
             como screenshot colado; é o movimento que faz a grade parecer ter
             aberto uma janela.
           */}
@@ -378,9 +419,16 @@ export function Entregas() {
               O trilho é flex com snap no estreito (cartões de 265px
               centrados) e vira malha de três colunas no largo.
             */
-            classeDoTrilho="gap-32 px-[calc((100vw-26.5rem)*0.5)] scroll-px-[calc((100vw-26.5rem)*0.5)] md:grid md:grid-cols-3 md:gap-0 md:overflow-visible md:px-0"
+            /*
+              No largo, duas fileiras com contagens diferentes: `grid-cols-12`
+              com as quatro entregas profissionais em `col-span-3` e os três
+              estudos em `col-span-4`. As variantes `nth-child` mantêm o
+              trilho único que o estreito precisa para o snap — duplicar a
+              marcação custaria dois lugares para corrigir a cada entrega nova.
+            */
+            classeDoTrilho="gap-32 px-[calc((100vw-26.5rem)*0.5)] scroll-px-[calc((100vw-26.5rem)*0.5)] md:grid md:grid-cols-12 md:gap-0 md:overflow-visible md:px-0 md:[&>*:nth-child(-n+4)]:col-span-3 md:[&>*:nth-child(n+5)]:col-span-4"
             classeDoItem="w-265 shrink-0 snap-center md:w-full"
-            // Os pontos não têm o que navegar quando as seis células estão na
+            // Os pontos não têm o que navegar quando todas as células estão na
             // tela ao mesmo tempo.
             className="md:[&>[role=group]]:hidden"
             renderizar={(project, _indice, ativo) => (
@@ -606,7 +654,7 @@ function Celula({
         className="relative h-345 w-full overflow-clip rounded-[1.6rem] bg-ink/20 md:absolute md:inset-0 md:h-auto md:rounded-none md:bg-transparent"
       >
         {/* Só no estreito: no largo quem mostra a mídia é a camada única da
-            malha, e um screenshot por célula devolveria as seis janelinhas.
+            malha, e um screenshot por célula devolveria as sete janelinhas.
             Sem vídeo entra a captura parada: o cartão do estreito é 265 × 345 e
             uma caixa dessas sem mídia lê como imagem que não carregou, não como
             escolha. */}

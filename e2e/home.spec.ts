@@ -419,25 +419,21 @@ test.describe("Rota /: seção de empresas (SEC-02, SEC-03)", () => {
 /**
  * SEC-10 e SEC-18, no molde de projetos.
  *
- * A grade tem **seis** células em duas fileiras, e é essa proporção que dá
- * ao bloco a altura que ele tem. Três entregas profissionais enchem a primeira
- * fileira; a segunda vem dos estudos, na ordem do dado. O que muda para o
- * SEC-18 é só onde a invariante morde: a atribuição continua proibida de
- * aparecer sem valor, e agora tem de aparecer **exatamente** nas três entregas
- * profissionais: um estudo com `entreguePor` seria dado errado.
+ * A grade mostra **os sete** projetos em duas fileiras, e as fileiras são as
+ * duas naturezas do trabalho: as quatro entregas profissionais em cima, os três
+ * exercícios de curso embaixo. Duas fileiras de 260 dão os 520 do painel ao
+ * lado, e é essa igualdade que dá ao bloco a altura que ele tem.
+ *
+ * O que o SEC-18 cobra é onde a invariante morde: a atribuição continua
+ * proibida de aparecer sem valor, e tem de aparecer **exatamente** nas entregas
+ * profissionais — um estudo com `entreguePor` seria dado errado.
  */
 const ENTREGAS_REGIAO = {
   pt: "O que está no ar.",
   en: "What is live.",
 };
-/**
- * O que sobra da grade de seis e só existe em `/projetos`. Voltou a ter um item
- * quando a SoftCode entrou e o portfólio passou a sete.
- */
-const FORA_DA_GRADE = ["Olá Mundo"];
-
 test.describe("Rota /: seção de entregas (SEC-10, SEC-18)", () => {
-  test("a grade tem seis células, entregas antes de estudos", async ({
+  test("a grade tem os sete projetos, entregas antes de estudos", async ({
     page,
   }) => {
     await page.goto("/");
@@ -454,6 +450,7 @@ test.describe("Rota /: seção de entregas (SEC-10, SEC-18)", () => {
       "ProOps",
       "Alura Space",
       "Store Flow",
+      "Olá Mundo",
     ]);
 
     // A atribuição por entrega, na ordem, não só "SoftCode aparece em algum
@@ -468,9 +465,9 @@ test.describe("Rota /: seção de entregas (SEC-10, SEC-18)", () => {
   });
 
   /**
-   * As seis células são `[...profissionais, ...estudos].slice(0, 6)`, e desde
-   * que os estudos ganharam case page **todas as seis** linkam para dentro. Era
-   * quatro: os dois estudos que completam a grade apontavam para fora.
+   * As células são `[...profissionais, ...estudos]`, e desde que os estudos
+   * ganharam case page **todas** linkam para dentro. Era quatro: os estudos
+   * apontavam para fora.
    */
   test("cada entrega linka para a sua case page", async ({ page }) => {
     await page.goto("/");
@@ -487,26 +484,15 @@ test.describe("Rota /: seção de entregas (SEC-10, SEC-18)", () => {
       "/projetos/proops",
       "/projetos/alura-space",
       "/projetos/store-flow",
+      "/projetos/ola-mundo",
     ]);
   });
 
   // SEC-18: o rótulo de atribuição não pode existir sem valor. Um `entreguePor`
   // ausente tem que sumir com o rótulo junto, não deixar "Entregue por" solto.
-  test("a grade para em seis, e nenhuma atribuição fica vazia", async ({
-    page,
-  }) => {
+  test("a grade não deixa atribuição vazia", async ({ page }) => {
     await page.goto("/");
     const entregas = page.getByRole("region", { name: ENTREGAS_REGIAO.pt });
-    const texto = await entregas.innerText();
-
-    // A grade corta em seis: o que sobra vive em `/projetos`. Sem este corte a
-    // segunda fileira estouraria para uma terceira e a proporção do bloco iria
-    // junto. O corte em si é cobrado pela contagem de células no teste acima.
-    for (const excedente of FORA_DA_GRADE) {
-      expect(texto, `projeto além dos seis: ${excedente}`).not.toContain(
-        excedente,
-      );
-    }
 
     const atribuicoes = await entregas
       .locator("[data-entregue-por]")

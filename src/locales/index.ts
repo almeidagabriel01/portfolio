@@ -81,20 +81,20 @@ export const ptBR = {
    * SEC-10 e SEC-18: as entregas com a empresa que as assina. `by` é o rótulo
    * da atribuição: só é renderizado quando existe `entreguePor`, nunca sozinho.
    *
-   * A grade tem seis células, então o rótulo fala de seis. O
+   * A grade mostra os sete projetos, então o rótulo fala de sete. O
    * rótulo do painel são duas linhas de duas pontas cada, o que dá as quatro
    * etapas de uma entrega na ordem em que acontecem.
    *
    * **O título é curto por exigência do molde**, não por gosto: ele é
    * distribuído ponta a ponta e, em 390, a coluna tem 330px para 40px de corpo.
-   * "Seis projetos publicados." media 465px, quebrava em duas linhas, e a
+   * "Sete projetos publicados." media 465px, quebrava em duas linhas, e a
    * segunda, com uma palavra só, não tem como se distribuir e encostava na
    * esquerda. Quem pegou foi a medição em 390 de largura, na sonda
    * `portfolio/titulo-n`: borda direita em 224 contra os 360 da coluna. A conta
    * a fazer antes de mexer aqui é a largura da frase no corpo do estreito.
    */
   deliveries: {
-    label: "Seis projetos publicados",
+    label: "Sete projetos publicados",
     title: "O que está ",
     highlight: "no ar.",
     description:
@@ -154,7 +154,7 @@ export const ptBR = {
    * seção de entregas da home, que já diz o que está no ar.
    */
   projects: {
-    label: "Sete projetos, quatro com case escrito",
+    label: "Sete projetos, todos com case escrito",
     title: "Nenhum deles começou ",
     highlight: "pronto.",
     table: { projeto: "Projeto", oQueE: "O que é", grupo: "Grupo" },
@@ -349,7 +349,7 @@ export const enUS = {
     },
   },
   deliveries: {
-    label: "Six shipped projects",
+    label: "Seven shipped projects",
     title: "What is ",
     highlight: "live.",
     description:
@@ -385,7 +385,7 @@ export const enUS = {
     },
   },
   projects: {
-    label: "Seven projects, four with a written case",
+    label: "Seven projects, each with a written case",
     title: "None of them started ",
     highlight: "finished.",
     table: { projeto: "Project", oQueE: "What it is", grupo: "Group" },

@@ -184,6 +184,10 @@ export interface FalhaDeContraste {
   fontWeight: number;
   exigido: number;
   medido: number;
+  /** sRGB do pixel de fundo mais claro medido sob o texto. */
+  fundo: string;
+  /** Retângulo do alvo no instante da medição, em coordenadas de viewport. */
+  onde: string;
 }
 
 export interface RelatorioDeContraste {
@@ -300,18 +304,45 @@ export async function relatorioDeContraste(
     // com ele: uma captura serve para o lote inteiro.
     await page.evaluate(
       (id) => {
-        const el = document.querySelector(`[data-contraste="${id}"]`)!;
+        /**
+         * O alvo pode ter saído do DOM entre a checagem de quem está vivo e
+         * esta chamada: a headline do hero gira a cada 5s e leva os `<span>`
+         * dela junto. Sem esta guarda o harness morre com "Cannot read
+         * properties of null", que parece defeito da página e não é — a volta
+         * seguinte do laço já tira o alvo da fila pela contagem de `saidas`.
+         */
+        const el = document.querySelector(`[data-contraste="${id}"]`);
+        if (!el) return;
         const caixa = el.getBoundingClientRect();
+        /**
+         * **Quem já está na primeira tela é medido no topo, não centralizado.**
+         *
+         * O hero tem uma altura de viewport e o conteúdo dele esmaece com o
+         * scroll (`opacity: 1 → 0` ao longo de uma tela). Centralizar o rótulo
+         * de 14px do hero rola 57px, e 57px já bastam para o esmaecimento
+         * começar: medido, o alvo saía com alfa efetivo ~0,29 e o harness
+         * reprovava 1,85:1 contra preto — um estado que **nenhum visitante vê**,
+         * porque no topo o texto está em opacidade cheia.
+         *
+         * O critério é o que o visitante experimenta: se o elemento cabe na
+         * tela sem rolar, é ali que ele é medido.
+         */
+        const documentoY = caixa.y + window.scrollY;
+        const naPrimeiraTela =
+          documentoY >= 0 &&
+          documentoY + caixa.height <= window.innerHeight;
         // Centraliza o **meio** do elemento, não o topo: com o topo no centro,
         // qualquer bloco mais alto que meia viewport passa da borda de baixo e
         // nunca cabe inteiro numa captura.
-        const destino = Math.max(
-          0,
-          caixa.y +
-            window.scrollY +
-            caixa.height / 2 -
-            window.innerHeight / 2,
-        );
+        const destino = naPrimeiraTela
+          ? 0
+          : Math.max(
+              0,
+              caixa.y +
+                window.scrollY +
+                caixa.height / 2 -
+                window.innerHeight / 2,
+            );
         window.__lenis?.scrollTo(destino, { immediate: true });
         window.scrollTo(0, destino);
         /**
@@ -501,7 +532,11 @@ export async function relatorioDeContraste(
 
     if (visiveis.length === 0) {
       const diag = await page.evaluate((id) => {
-          const el = document.querySelector(`[data-contraste="${id}"]`)!;
+          const el = document.querySelector(`[data-contraste="${id}"]`);
+          // Alvo que saiu do DOM não é defeito de contraste: a headline do hero
+          // gira a cada 5s. Sem isto o diagnóstico do AD-031 morria antes de
+          // diagnosticar, com "Cannot read properties of null".
+          if (!el) return null;
           const c = el.getBoundingClientRect();
           return {
             y: c.y,
@@ -513,6 +548,11 @@ export async function relatorioDeContraste(
         },
         alvo,
       );
+      if (!diag) {
+        pendentes.delete(alvo);
+        saidas++;
+        continue;
+      }
       throw new Error(
         `nenhum elemento mediável na volta ${volta}; pendente: "${
           alvos.find((a) => a.id === alvo)?.texto
@@ -574,6 +614,11 @@ export async function relatorioDeContraste(
           fontWeight: meta.fontWeight,
           exigido,
           medido: Number(medido.toFixed(2)),
+          // Sem isto a falha não é acionável: "1,85:1" não diz **contra o
+          // quê**, e o fundo aqui é medido, não declarado — pode ser um pixel
+          // do campo, um cartão ou a captura pega no meio de uma transição.
+          fundo: `rgb(${fundoRgb.join(", ")})`,
+          onde: `x=${Math.round(rect.x)} y=${Math.round(rect.y)} ${Math.round(rect.width)}×${Math.round(rect.height)}`,
         });
       }
       pendentes.delete(rect.id);
