@@ -349,13 +349,21 @@ export function Carrossel<T>({
               onClick={() => ir(indice)}
               aria-current={indice === ativo ? "true" : undefined}
               aria-label={`${indice + 1}`}
-              className="flex-center px-4 py-8"
+              className="flex-center px-8 py-8"
             >
               {/*
                 O ponto ativo é 8px e o inativo 4px, medidos em navegador. Quem
                 encolhe é o quadrado, não o botão: a caixa de 8px fica de pé e o
-                `px-4`/`py-8` mantém o alvo de toque, que a 4px seria
+                preenchimento é que mantém o alvo de toque, que a 4px seria
                 inalcançável no dedo.
+
+                **`px-8`, não `px-4`, e o motivo é uma régua.** Com
+                `--spacing: 0.1rem` (globals.css), `px-4 py-8` dava um alvo de
+                16x24px — abaixo dos 24x24 do WCAG 2.5.8. E a exceção de
+                espaçamento também não salvava: sem `gap` no contentor, os
+                centros ficavam a 16px e os alvos de 24px sobrepunham-se. Era a
+                falha `target-size` que segurava a acessibilidade em 96.
+                `px-8` leva os centros a 24px, que é o mínimo que passa.
               */}
               <span aria-hidden className="flex-center size-8">
                 <span
