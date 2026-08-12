@@ -7,6 +7,12 @@ declare global {
   }
 }
 
+/**
+ * **Tudo aqui é garantia do largo.** Abaixo do `md` não há canvas fixo: o hero
+ * e o painel da `Empresas` têm canvas próprio, que remonta a cada rota de
+ * propósito (o recorte do `<View>` descola no scroll de toque). O que vale lá
+ * é "não acumula canvas", em `canvas-robustness`.
+ */
 test.describe("Canvas persistente entre rotas (AD-002)", () => {
   // PORT-01: o coração da arquitetura.
   test("o nó <canvas> é o mesmo objeto DOM antes e depois de navegar", async ({

@@ -3,6 +3,7 @@
 import { View } from "@react-three/drei";
 import { useEffect } from "react";
 import { CanvasDoCampo } from "@/components/canvas/CanvasDoCampo";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { isWebGLAvailable } from "@/lib/webgl";
 import { useStore } from "@/store";
 
@@ -45,15 +46,25 @@ declare global {
  */
 export function BackgroundCanvas() {
   const supported = useStore((state) => state.webglAvailable);
+  const ehLargo = useMediaQuery("(min-width: 768px)");
 
   // Só após a hidratação: o servidor não tem WebGL, então renderizar o canvas
   // no HTML criaria mismatch com o cliente. O default `false` do store é o
-  // valor do servidor.
+  // valor do servidor. **A sonda roda antes de qualquer saída antecipada**: é
+  // ela que destranca também os canvas de seção do estreito.
   useEffect(() => {
     useStore.getState().setWebglAvailable(isWebGLAvailable());
   }, []);
 
-  if (!supported) return null;
+  /**
+   * Abaixo do `md` não sobra `<View>` nenhum: o hero e o painel da `Empresas`
+   * têm canvas próprio lá (o recorte descolava no scroll de toque) e o painel
+   * da `Entregas` é `md:flex`. Manter o canvas fixo seria um contexto WebGL e
+   * um loop de render desenhando cena vazia no aparelho que menos tem bateria
+   * para isso. Quem acrescentar um `<View>` visível no estreito tira esta
+   * linha.
+   */
+  if (!supported || !ehLargo) return null;
 
   return (
     <div

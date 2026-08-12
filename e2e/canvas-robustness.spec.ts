@@ -220,39 +220,71 @@ test.describe("BackgroundCanvas: robustez", () => {
   });
 
   /**
-   * O painel da `Empresas` no estreito **não** pode sair do canvas fixo: o
-   * recorte do `<View>` é calculado na main thread e descola do elemento
-   * durante o scroll de toque, que é do compositor. A prova estrutural é a
-   * posição do nó: canvas próprio dentro da seção, e não só o fixo lá em cima.
+   * No estreito nenhum campo pode sair do canvas fixo: o recorte do `<View>` é
+   * calculado na main thread e descola do elemento durante o scroll de toque,
+   * que é do compositor. A prova estrutural é a posição do nó — um canvas
+   * dentro do hero, outro dentro da `Empresas` — e a ausência do canvas fixo,
+   * que aí não teria `<View>` nenhum para hospedar.
    */
   test.describe("no estreito", () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
-    test("o campo da Empresas tem canvas próprio dentro da seção", async ({
+    test("hero e Empresas têm canvas próprio, e o canvas fixo não monta", async ({
       page,
     }) => {
       await page.goto("/");
-      await waitForRenderer(page);
-      const canvasDoPainel = page.locator(
-        'section[aria-labelledby="empresas"] canvas',
-      );
-      await expect(canvasDoPainel).toHaveCount(1);
+      await expect(
+        page.locator('section[data-name="hero"] canvas'),
+      ).toHaveCount(1);
+      await expect(
+        page.locator('section[aria-labelledby="empresas"] canvas'),
+      ).toHaveCount(1);
+      await expect(page.locator("canvas")).toHaveCount(2);
       expect(
-        await canvasDoPainel.evaluate(
-          (node) => node === window.__backgroundRenderer?.domElement,
-        ),
-      ).toBe(false);
+        await page.evaluate(() => window.__backgroundRenderer === undefined),
+      ).toBe(true);
+    });
+
+    /**
+     * O contraponto do PORT-01, que aqui não vale: no estreito o canvas do hero
+     * é **destruído e recriado** a cada rota. O que não pode acontecer é
+     * acumular — contexto WebGL vazado deixa o hero preto depois de algumas
+     * navegações, e o teto de contextos vivos do Safari de iPhone é baixo.
+     * Cada rota tem exatamente um hero; só a home tem também o painel.
+     */
+    test("navegar entre rotas não acumula canvas", async ({ page }) => {
+      await page.goto("/");
+      await expect(page.locator("canvas")).toHaveCount(2);
+
+      // No estreito as rotas moram no painel do menu, que fecha ao navegar.
+      for (const [link, url, quantos] of [
+        ["Sobre", "/sobre", 1],
+        ["Início", "/", 2],
+        ["Projetos", "/projetos", 1],
+      ] as const) {
+        await page.getByRole("button", { name: "Menu" }).click();
+        await page.locator("#menu-mobile").getByRole("link", { name: link }).click();
+        await page.waitForURL(url);
+        await expect(page.locator("canvas")).toHaveCount(quantos);
+      }
+
+      await page
+        .getByRole("heading", { level: 3, name: "Barbalog" })
+        .getByRole("link", { name: "Barbalog" })
+        .click();
+      await page.waitForURL("/projetos/barbalog");
+      // A case page não tem hero nem campo nenhum: no largo ela ainda mostra o
+      // canvas fixo, vazio; no estreito não sobra canvas para montar.
+      await expect(page.locator("canvas")).toHaveCount(0);
     });
   });
 
-  // No largo o painel volta ao `<View>`: um segundo canvas aqui seria regressão
-  // do AD-002.
-  test("no largo a Empresas não monta canvas próprio", async ({ page }) => {
+  // No largo tudo volta ao `<View>`: um segundo canvas aqui seria regressão do
+  // AD-002. O `toHaveCount(1)` global dos testes acima é o outro lado disto.
+  test("no largo nenhuma seção monta canvas próprio", async ({ page }) => {
     await page.goto("/");
     await waitForRenderer(page);
-    await expect(
-      page.locator('section[aria-labelledby="empresas"] canvas'),
-    ).toHaveCount(0);
+    await expect(page.locator("section canvas")).toHaveCount(0);
   });
 
   // `dpr={[1, 2]}`: em tela 3x o renderer precisa cair para 2, nunca seguir o

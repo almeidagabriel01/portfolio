@@ -13,12 +13,14 @@ import {
   CampoDeBlocos,
   type CampoHandle,
 } from "@/components/canvas/CampoDeBlocos";
+import { CanvasDoCampo } from "@/components/canvas/CanvasDoCampo";
 import { IndicadorDeScroll } from "@/components/motion/IndicadorDeScroll";
 import { PalavrasQueEntram } from "@/components/motion/PalavrasQueEntram";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useTranslations } from "@/hooks/useTranslations";
 import { remapear } from "@/lib/motion";
+import { useStore } from "@/store";
 
 /** Intervalo da rotação de frases, e também o tempo que o anel leva a fechar. */
 const INTERVALO = 5000;
@@ -78,6 +80,9 @@ export function Hero({ rotulo, frases: frasesDaRota }: Props = {}) {
 
   const ehDesktop = useMediaQuery("(min-width: 768px)");
   const reducedMotion = useReducedMotion();
+  // Mesmo portão do `BackgroundCanvas`: `false` no servidor e até a hidratação
+  // resolver se há WebGL.
+  const temWebGL = useStore((state) => state.webglAvailable);
 
   const [alturaDaJanela, setAlturaDaJanela] = useState(0);
   useEffect(() => {
@@ -151,21 +156,43 @@ export function Hero({ rotulo, frases: frasesDaRota }: Props = {}) {
       className="relative z-200 flex h-svh w-full overflow-clip"
     >
       {/*
-        O `<View>` do drei renderiza este `absolute inset-0` e recorta o render
-        do canvas fixo ao retângulo dele. É o que confina o campo ao hero sem
-        painel opaco por cima das outras seções.
+        No largo, o `<View>` do drei renderiza este `absolute inset-0` e recorta
+        o render do canvas fixo ao retângulo dele. É o que confina o campo ao
+        hero sem painel opaco por cima das outras seções.
+
+        **No estreito o recorte descola, e aqui ele aparece como faixa acesa.**
+        O `View` lê o retângulo do alvo na main thread; o scroll de toque é do
+        compositor. O campo pintado fica para trás do resto da página, e a
+        passagem para o preto logo abaixo — que é DOM, e portanto acompanha o
+        scroll — deixa de cobrir o rodapé do campo: durante o arrasto surge uma
+        tira de blocos **sem** o esmaecimento, exatamente a cor crua do campo.
+        Mesma causa do painel da `Empresas`; mesma cura (ver `CanvasDoCampo`):
+        canvas próprio dentro do elemento, que o compositor move junto.
+
+        Sem `usarMouse` no estreito: não há ponteiro para deixar rastro, e o
+        rastro custa dois render targets e um render por frame.
       */}
-      <View
-        ref={areaDoCampo as React.RefObject<HTMLElement>}
-        className="absolute inset-0"
-      >
-        <CampoDeBlocos
-          ref={campo}
-          usarMouse
-          alvoDoPonteiro={areaDoCampo}
-          opcoes={{ escala: ESCALA_NO_TOPO }}
-        />
-      </View>
+      {ehDesktop ? (
+        <View
+          ref={areaDoCampo as React.RefObject<HTMLElement>}
+          className="absolute inset-0"
+        >
+          <CampoDeBlocos
+            ref={campo}
+            usarMouse
+            alvoDoPonteiro={areaDoCampo}
+            opcoes={{ escala: ESCALA_NO_TOPO }}
+          />
+        </View>
+      ) : (
+        temWebGL && (
+          <div className="absolute inset-0">
+            <CanvasDoCampo>
+              <CampoDeBlocos ref={campo} opcoes={{ escala: ESCALA_NO_TOPO }} />
+            </CanvasDoCampo>
+          </div>
+        )
+      )}
 
       <motion.div className="absolute inset-0 size-full" style={{ y }}>
         <motion.div
