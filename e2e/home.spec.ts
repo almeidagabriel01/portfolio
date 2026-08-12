@@ -128,16 +128,20 @@ test.describe("Rota /: hero", () => {
       expect(await page.locator(`${secao} video`).count()).toBe(7);
       expect(await page.locator(`${secao} img`).count()).toBe(0);
 
-      // Vídeo sem poster abriria a caixa cinza no primeiro quadro.
-      expect(
-        await page.evaluate(
-          (s) =>
-            [
-              ...document.querySelectorAll<HTMLVideoElement>(`${s} video`),
-            ].every((n) => Boolean(n.poster)),
-          secao,
-        ),
-      ).toBe(true);
+      // Vídeo sem poster abriria a caixa cinza no primeiro quadro. O atributo
+      // entra quando o bloco chega perto (ver o teste do fundo, abaixo), então
+      // o que se espera aqui é o render do observador, não um instante fixo.
+      await expect
+        .poll(() =>
+          page.evaluate(
+            (s) =>
+              [
+                ...document.querySelectorAll<HTMLVideoElement>(`${s} video`),
+              ].every((n) => Boolean(n.poster)),
+            secao,
+          ),
+        )
+        .toBe(true);
     });
 
     /**
@@ -162,6 +166,28 @@ test.describe("Rota /: hero", () => {
         .locator('section[aria-labelledby="entregas"] video')
         .first()
         .scrollIntoViewIfNeeded();
+
+      /**
+       * O `poster` só é escrito quando o bloco chega perto — ele é buscado na
+       * montagem mesmo com `preload="none"`, e sete deles abaixo da dobra
+       * atravancavam a folha de estilo antes do primeiro pixel. Chegar perto é
+       * o que o `scrollIntoViewIfNeeded` acima faz; o atributo aparece no
+       * render seguinte ao observador, e é esse render que se espera aqui.
+       *
+       * A garantia continua a mesma: onde há poster, há o mesmo ficheiro como
+       * fundo. O que mudou foi o instante, não o par.
+       */
+      await expect
+        .poll(() =>
+          page.evaluate(() =>
+            [
+              ...document.querySelectorAll<HTMLVideoElement>(
+                'section[aria-labelledby="entregas"] video',
+              ),
+            ].every((v) => Boolean(v.poster)),
+          ),
+        )
+        .toBe(true);
 
       const vaos = await page.evaluate(() =>
         [

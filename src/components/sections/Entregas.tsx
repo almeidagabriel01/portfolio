@@ -680,7 +680,25 @@ function Celula({
             <video
               ref={midia}
               aria-hidden
-              poster={project.poster}
+              /*
+                **O poster também espera o bloco chegar perto, e isso é FCP.**
+
+                `poster` é buscado na montagem, independente de `preload="none"`
+                — são sete cartões, ~55 kB, todos abaixo da dobra. Medido numa
+                4G lenta: 63,6 kB desciam antes do primeiro pixel, e 55 eram
+                estes. Eles não bloqueiam a pintura por prioridade (são `Low`),
+                bloqueiam por **banda**: a folha de estilo, que é
+                render-blocking e `VeryHigh`, só terminava aos 1960ms e o FCP
+                vinha aos 2036ms, atrás de pôsteres de conteúdo que ninguém
+                ainda podia ver.
+
+                O mesmo `blocoPerto` que já adia os `<source>` serve aqui: com
+                200px de margem ele dispara antes de qualquer cartão ser
+                alcançável, então a piscada cinza que o fundo abaixo resolve
+                continua resolvida — o poster chega muito antes de o dedo lá
+                chegar.
+              */
+              poster={blocoPerto ? project.poster : undefined}
               muted
               loop
               playsInline
@@ -712,7 +730,11 @@ function Celula({
                 decodificação, troca de recurso), que é por que a correção mora
                 aqui e não numa guarda em volta do `play()`.
               */
-              style={{ backgroundImage: `url("${project.poster}")` }}
+              style={
+                blocoPerto
+                  ? { backgroundImage: `url("${project.poster}")` }
+                  : undefined
+              }
               className="absolute inset-0 size-full bg-cover bg-top bg-no-repeat object-cover object-top"
             >
               {deveTocar && (

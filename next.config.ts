@@ -48,6 +48,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  // O CSS crítico vai no HTML: com os pôsteres fora da fila, a folha passou a
+  // ser o último recurso render-blocking antes do FCP.
+  experimental: { inlineCss: true },
   // Sem esta declaração o Turbopack deixa `process.env.NEXT_PUBLIC_E2E` como
   // leitura em runtime e o corpo dos seams de debug continua no bundle,
   // apenas inalcançável. Declarado aqui, ele vira literal em build time. No
