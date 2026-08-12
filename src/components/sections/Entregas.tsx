@@ -411,8 +411,13 @@ export function Entregas() {
                         transition={TRANSICAO_DA_ABERTURA}
                         style={{
                           transformOrigin: origemDaCelula(indiceEmDestaque),
+                          // O mesmo piso do cartão do estreito: `autoPlay`
+                          // derruba a *show poster flag* já na montagem, e a
+                          // camada abriria vazia no vão até o primeiro quadro.
+                          // Ver o `<video>` da `Celula`.
+                          backgroundImage: `url("${destacado.poster}")`,
                         }}
-                        className="size-full object-cover object-top"
+                        className="size-full bg-cover bg-top bg-no-repeat object-cover object-top"
                       >
                         {/* WebM primeiro: quem sabe VP9 baixa o menor. */}
                         <source src={destacado.video} type="video/webm" />
@@ -760,7 +765,29 @@ function Celula({
                 desce quando o dedo chega nele.
               */
               preload={deveTocar ? "auto" : "none"}
-              className="absolute inset-0 size-full object-cover object-top"
+              /*
+                **O poster também como fundo do elemento, e é isto que mata a
+                piscada cinza.**
+
+                O atributo `poster` é conteúdo substituído, e o `<video>` só o
+                representa enquanto a *show poster flag* está de pé. `play()`
+                derruba essa flag na hora; o primeiro quadro decodificado chega
+                um quadro de composição depois. Nesse vão o elemento não
+                representa nada, e o que aparece é o `bg-ink/20` da caixa — o
+                cinza. Medido: o quadro cinza cai 18–26ms **depois** do evento
+                `playing`, uma vez por cartão, na primeira ativação.
+
+                O fundo CSS é pintado na caixa do próprio elemento, debaixo do
+                conteúdo substituído, e não depende de flag nenhuma: o poster
+                fica lá o tempo todo e o vão não tem mais o que revelar. Mesma
+                URL do atributo, então é o mesmo cache — nenhum byte a mais.
+
+                Cobre também os outros vãos da mesma família (`load()`, erro de
+                decodificação, troca de recurso), que é por que a correção mora
+                aqui e não numa guarda em volta do `play()`.
+              */
+              style={{ backgroundImage: `url("${project.poster}")` }}
+              className="absolute inset-0 size-full bg-cover bg-top bg-no-repeat object-cover object-top"
             >
               {deveTocar && (
                 <>

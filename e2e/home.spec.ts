@@ -104,14 +104,16 @@ test.describe("Rota /: hero", () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
     /**
-     * **A piscada cinza.** O `lazy` do `next/image` decide pela viewport, e um
-     * trilho horizontal esconde os cartões da direita atrás do próprio
-     * recorte: o `rootMargin` do observer não atravessa isso (medido,
-     * `9999px` na horizontal não muda um bit). O último cartão ficava com a
-     * imagem por carregar e, ao deslizar até ele, aparecia o `bg-ink/20` da
-     * caixa — cinza — por ~370ms a 1,5 Mbps.
+     * O `lazy` do `next/image` decide pela viewport, e um trilho horizontal
+     * esconde os cartões da direita atrás do próprio recorte: o `rootMargin`
+     * do observer não atravessa isso (medido, `9999px` na horizontal não muda
+     * um bit). O último cartão ficava com a imagem por carregar e, ao deslizar
+     * até ele, aparecia o `bg-ink/20` da caixa por ~370ms a 1,5 Mbps.
      *
      * A garantia é: alcançado o bloco, **todo** cartão tem o que pintar.
+     *
+     * Isto **não** é a piscada cinza do vídeo, que tem outra causa e outro
+     * sensor — ver o teste do fundo do `<video>` logo abaixo.
      */
     test("todo cartão tem mídia pintável assim que o bloco é alcançado", async ({
       page,
@@ -144,6 +146,47 @@ test.describe("Rota /: hero", () => {
           ].every((n) => Boolean((n as HTMLVideoElement).poster)),
         ),
       ).toBe(true);
+    });
+
+    /**
+     * **A piscada cinza, esta é a do vídeo.**
+     *
+     * O atributo `poster` é conteúdo substituído e vale só enquanto a *show
+     * poster flag* está de pé; `play()` a derruba na hora, e o primeiro quadro
+     * decodificado chega um quadro de composição depois. Nesse vão o `<video>`
+     * não representa nada e o `bg-ink/20` da caixa aparece. Medido por
+     * screencast a 1,5 Mbps: um quadro cinza de 265px de largura, 18–26ms
+     * **depois** do evento `playing`, uma vez por cartão, ao deslizar.
+     *
+     * O sensor é o fundo CSS e não o pixel: o vão dura um quadro, e teste que
+     * depende de pegar um quadro é moeda no ar. O fundo é a garantia
+     * estrutural de que não existe vão para pegar.
+     */
+    test("o vídeo do cartão tem o poster como fundo, e não um vão", async ({
+      page,
+    }) => {
+      await page.goto("/");
+      await page
+        .locator('section[aria-labelledby="entregas"] video')
+        .first()
+        .scrollIntoViewIfNeeded();
+
+      const vaos = await page.evaluate(() =>
+        [
+          ...document.querySelectorAll<HTMLVideoElement>(
+            'section[aria-labelledby="entregas"] video',
+          ),
+        ]
+          .map((v) => ({
+            poster: v.poster,
+            fundo: getComputedStyle(v).backgroundImage,
+          }))
+          // O fundo tem de ser o **mesmo** arquivo do poster: um fundo
+          // qualquer taparia o vão com a imagem errada.
+          .filter(({ poster, fundo }) => !fundo.includes(new URL(poster).pathname))
+          .map(({ poster }) => poster),
+      );
+      expect(vaos).toEqual([]);
     });
 
     test("nenhum vídeo carrega antes de o carrossel ser alcançado", async ({
