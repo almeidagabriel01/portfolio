@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useThree } from "@react-three/fiber";
-import { Component, useEffect, useRef, useState, type ReactNode } from "react";
+import { Component, useEffect, useState, type ReactNode } from "react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { isWebGLAvailable } from "@/lib/webgl";
 import { useStore } from "@/store";
@@ -99,14 +99,29 @@ function PortaoDeFrames() {
   }, []);
 
   /**
-   * Só aplica quando o modo **muda de verdade**. Sob movimento reduzido o modo
-   * é `demand` esteja o campo na tela ou não, e reaplicá-lo custaria um
-   * `invalidate` — ou seja, um frame — a cada vez que o observer se manifesta.
-   * O PORT-03 cobra exatamente isso: com `reduce`, o contador de frames não
-   * pode andar. Foi assim que o teste flagrou, de forma intermitente, o
-   * observer chegando depois da primeira amostra.
+   * **A comparação é contra o estado real do store, e é o que impede o campo de
+   * congelar.**
+   *
+   * O `<Canvas>` roda `configure()` num `useIsomorphicLayoutEffect` **sem lista
+   * de dependências**: a cada render dele — e ele re-renderiza junto com quem o
+   * contém — a prop `frameloop` é reimposta ao store. A prop aqui é `never`
+   * (para não desenhar antes de a política valer), então todo render da seção
+   * matava o loop. Comparando com um `useRef` do último modo aplicado, o
+   * portão achava que não tinha nada a fazer e o campo ficava parado **para
+   * sempre**.
+   *
+   * Foi assim que apareceu no celular: a barra de endereço recolhe ao rolar,
+   * `innerHeight` muda, o `Hero` re-renderiza — e o campo congelava alguns
+   * segundos depois de a página carregar. A rotação de frase do hero, a cada
+   * 5s, faz o mesmo. Medido: um `setViewportSize` de 1px bastava para o campo
+   * parar de mudar (32.305 pixels em movimento antes, 2 depois).
+   *
+   * Lendo `frameloop` do store, o portão volta a ser autoridade: sempre que a
+   * reconfiguração o derruba, isto o repõe no frame seguinte. E continua sem
+   * reaplicar à toa — sob movimento reduzido o modo é `demand` na tela ou fora
+   * dela, e reaplicá-lo custaria um frame que o PORT-03 proíbe.
    */
-  const aplicado = useRef<"always" | "demand" | "never" | null>(null);
+  const frameloopAtual = useThree((estado) => estado.frameloop);
   useEffect(() => {
     const modo = oculta
       ? "never"
@@ -115,11 +130,17 @@ function PortaoDeFrames() {
         : visivel
           ? "always"
           : "never";
-    if (aplicado.current === modo) return;
-    aplicado.current = modo;
+    if (frameloopAtual === modo) return;
     setFrameloop(modo);
     if (modo !== "never") invalidate();
-  }, [oculta, reducedMotion, visivel, setFrameloop, invalidate]);
+  }, [
+    frameloopAtual,
+    oculta,
+    reducedMotion,
+    visivel,
+    setFrameloop,
+    invalidate,
+  ]);
 
   return null;
 }

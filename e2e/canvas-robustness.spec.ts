@@ -71,6 +71,34 @@ test.describe("Canvas do campo: robustez", () => {
     expect(await frameCount(page)).toBeGreaterThan(before);
   });
 
+  /**
+   * **Re-render da seção não pode parar o campo.**
+   *
+   * O `<Canvas>` do R3F reconfigura o store a cada render seu, num efeito de
+   * layout **sem lista de dependências**, e reimpõe a prop `frameloop` — que
+   * aqui é `never`, porque quem manda no loop é o `PortaoDeFrames`. Enquanto o
+   * portão comparava com o último modo que ele próprio tinha aplicado, achava
+   * que não havia nada a fazer e o campo ficava parado para sempre.
+   *
+   * No celular isso aparecia sem ninguém tocar em nada: a barra de endereço
+   * recolhe ao rolar, `innerHeight` muda, o `Hero` re-renderiza. `setViewportSize`
+   * é o mesmo gatilho, de forma determinística.
+   */
+  test("re-renderizar a seção não congela o campo", async ({ page }) => {
+    await page.goto(ROUTE);
+    await waitForRenderer(page);
+    await page.waitForFunction(
+      () => (window.__campoRenderer?.info.render.frame ?? 0) > 0,
+    );
+
+    await page.setViewportSize({ width: 1281, height: 720 });
+    await page.waitForTimeout(400);
+
+    const antes = await frameCount(page);
+    await page.waitForTimeout(600);
+    expect(await frameCount(page)).toBeGreaterThan(antes);
+  });
+
   // PORT-03. `page.emulateMedia` e não `test.use({ reducedMotion })`: no
   // Playwright 1.62 a opção de contexto não chega ao `matchMedia` da página
   // (verificado: a media query continua devolvendo `false`).
