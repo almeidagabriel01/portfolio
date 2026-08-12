@@ -12,61 +12,55 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/projetos/barbalog",
 }));
 
-function projeto(slug: string, comCase: boolean): Project {
+/**
+ * O parâmetro `comCase` saiu junto com a opcionalidade: `case` é obrigatório em
+ * `Project`, então "projeto sem case" deixou de ser um estado construível.
+ */
+function projeto(slug: string): Project {
   return {
     slug,
     nome: slug,
     link: "https://exemplo.invalid/",
-    grupo: comCase ? "cliente" : "estudo",
-    ...(comCase ? { entreguePor: "SoftCode" as const } : {}),
+    // As quatro mídias são obrigatórias em `Project`. Seguem a convenção de
+    // caminho do dado real; nada aqui as renderiza.
+    video: `/projetos/${slug}.webm`,
+    videoMp4: `/projetos/${slug}.mp4`,
+    poster: `/projetos/${slug}-poster.webp`,
+    screenshot: `/projetos/${slug}.png`,
+    grupo: "cliente",
+    entreguePor: "SoftCode",
     descricao: { pt: `descrição de ${slug}`, en: `description of ${slug}` },
-    ...(comCase
-      ? {
-          case: {
-            contexto: { pt: "", en: "" },
-            papel: { pt: "", en: "" },
-            stack: [],
-            destaques: { pt: [], en: [] },
-          },
-        }
-      : {}),
+    case: {
+      contexto: { pt: "", en: "" },
+      papel: { pt: "", en: "" },
+      stack: [],
+      destaques: { pt: [], en: [] },
+    },
   };
 }
 
 afterEach(cleanup);
 
 describe("outrosCases (SEC-14)", () => {
-  it("exclui o projeto atual e mantém os outros com case", () => {
+  it("exclui o projeto atual e mantém todos os outros", () => {
     expect(
       outrosCases(portfolioProjects, "barbalog").map((project) => project.slug),
     ).toEqual(["alura-space", "store-flow", "ola-mundo", "softcode", "lyftconnect", "proops"]);
   });
 
-  // Sem `case` a rota devolve 404: linkar para lá seria pior que não linkar.
-  it("exclui projeto sem case, mesmo não sendo o atual", () => {
-    const saida = outrosCases(
-      [projeto("com-case", true), projeto("sem-case", false)],
-      "outro",
-    );
-
-    expect(saida.map((project) => project.slug)).toEqual(["com-case"]);
-  });
-
-  it("sendo o único com case, não sobra nenhum outro", () => {
-    expect(
-      outrosCases([projeto("unico", true), projeto("estudo", false)], "unico"),
-    ).toEqual([]);
+  it("sendo o único projeto, não sobra nenhum outro", () => {
+    expect(outrosCases([projeto("unico")], "unico")).toEqual([]);
   });
 });
 
 /**
- * O SEC-14 tem duas metades e a segunda não é observável no dado real: os três
- * projetos com case existem, então a rota nunca chega ao caso do projeto único.
- * Só a renderização com um dado construído prova que a seção **some** em vez de
+ * O SEC-14 tem duas metades e a segunda não é observável no dado real: os sete
+ * projetos existem, então a rota nunca chega ao caso do projeto único. Só a
+ * renderização com um dado construído prova que a seção **some** em vez de
  * renderizar título com lista vazia.
  */
 describe("<OutrosCases /> (SEC-14)", () => {
-  it("lista os outros cases, sem o atual", () => {
+  it("lista os outros projetos, sem o atual", () => {
     render(<OutrosCases projects={portfolioProjects} slugAtual="barbalog" />);
 
     expect(
@@ -75,12 +69,9 @@ describe("<OutrosCases /> (SEC-14)", () => {
     expect(screen.queryByText("Barbalog")).toBeNull();
   });
 
-  it("sendo o único com case, a seção inteira é omitida", () => {
+  it("sendo o único projeto, a seção inteira é omitida", () => {
     const { container } = render(
-      <OutrosCases
-        projects={[projeto("unico", true), projeto("estudo", false)]}
-        slugAtual="unico"
-      />,
+      <OutrosCases projects={[projeto("unico")]} slugAtual="unico" />,
     );
 
     // Nem seção, nem título solto, nem lista vazia: nada.

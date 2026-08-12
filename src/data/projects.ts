@@ -41,18 +41,29 @@ export interface Project {
    * Caminho público de um trecho gravado do site ao vivo, em `webm`.
    *
    * É um vídeo atrás de cada célula da grade que faz o hover parecer que a
-   * grade abriu uma janela. Imagem parada lê como screenshot colado. Estes são gravações do próprio site rolando,
-   * capturadas por Playwright a partir de `link`, cortadas em 5s e reencodadas
-   * em VP9 (as seis somam 346 kB).
+   * grade abriu uma janela. Imagem parada lê como screenshot colado. Estes são
+   * gravações do próprio site rolando, capturadas por Playwright a partir de
+   * `link`, cortadas em 8,00s e reencodadas em VP9.
+   *
+   * **Obrigatório, e é o ponto.** Enquanto era opcional, dois dos sete
+   * projetos não tinham vídeo e *toda* superfície que mostra mídia carregava
+   * um ramo para cada caso: a célula da home era `<video>` num projeto e
+   * `<Image>` no vizinho, com física, timing e modos de falha diferentes. O
+   * campo obrigatório apaga os ramos em vez de mantê-los sincronizados.
+   *
+   * O perfil é fechado e as sete gravações o cumprem: **760 × 474, SAR 1:1,
+   * 24 fps, 8,00s**. Quem gravar uma nova segue isso — o aspecto entra no
+   * recorte do `object-cover`, e meio por cento de diferença dá um passo
+   * lateral visível quando o vídeo assume o lugar do poster.
    */
-  video?: string;
+  video: string;
   /**
    * O mesmo trecho em H.264. **Não é redundância**: o VP9 em WebM só toca no
    * Safari do iOS a partir do 17.4, e antes disso a célula ficaria no poster
    * para sempre. O `<video>` declara os dois e o browser escolhe: quem sabe
    * VP9 baixa o WebM, que é ~40% menor; o resto baixa este.
    */
-  videoMp4?: string;
+  videoMp4: string;
   /**
    * Primeiro quadro do `video`, extraído dele mesmo no build da gravação.
    *
@@ -60,6 +71,11 @@ export interface Project {
    * `poster` a célula fica **preta** nesse intervalo. Era o que acontecia com a
    * LyftConnect, a única sem `screenshot`, porque as outras cinco emprestavam o
    * screenshot e por isso o defeito só aparecia nela.
+   *
+   * O poster **não** é o piso sozinho: `play()` derruba a *show poster flag*
+   * antes de existir quadro decodificado, e nesse vão o `<video>` não
+   * representa nada. Quem tapa isso é o mesmo arquivo repetido como fundo CSS
+   * do elemento. Ver o `<video>` da `Celula`, em `Entregas.tsx`.
    *
    * Sai do próprio vídeo, e não do screenshot, para o poster e o primeiro
    * quadro serem a mesma imagem: com fontes diferentes há um salto visível no
@@ -75,18 +91,31 @@ export interface Project {
    *     ffmpeg -i <n>.webm -frames:v 1 -vf scale=380:237:flags=lanczos \
    *            -c:v libwebp -quality 75 <n>-poster.webp
    */
-  poster?: string;
+  poster: string;
   /**
-   * Caminho público do screenshot do site ao vivo, gerado por Playwright a
-   * partir de `link`.
+   * Caminho público do screenshot do site ao vivo, 1280 × 800, gerado por
+   * Playwright a partir de `link`.
    *
-   * Opcional porque nem todo site responde: a LyftConnect devolveu HTTP 522 na
-   * captura e não tem imagem. É o caso de borda do spec (o slide renderiza
-   * sem imagem e sem quebrar o layout), e ele é real, não simulado.
+   * Era opcional pelo mesmo motivo que o `video`: a LyftConnect devolveu HTTP
+   * 522 numa captura antiga e ficou sem imagem, e daí saiu um ramo "slide sem
+   * imagem" no `CarrosselDeProjetos` que só ela exercitava. O apex responde
+   * 200 (ver o comentário do `link` dela) e a captura foi refeita: o ramo não
+   * tem mais razão de existir, e o campo obrigatório garante que ele não
+   * volta.
    */
-  screenshot?: string;
-  /** Ausente = sem case page, rota devolve 404. */
-  case?: ProjectCase;
+  screenshot: string;
+  /**
+   * A case page do projeto. **Obrigatória**, pelo mesmo motivo que `video`.
+   *
+   * Era opcional, e daí saía o par de comportamentos: o cartão da home levava
+   * ao case num projeto e abria o site em aba nova no vizinho, com a rota
+   * `[slug]` devolvendo 404 no segundo caso. Os sete já tinham case desde que
+   * os exercícios de curso ganharam a deles, então o ramo estava dormente — e
+   * dormente é pior, porque nada avisa quando ele acorda.
+   *
+   * O preço está declarado: projeto novo não entra no site sem case escrita.
+   */
+  case: ProjectCase;
 }
 
 export const portfolioProjects: Project[] = [
@@ -173,6 +202,9 @@ export const portfolioProjects: Project[] = [
   },
   {
     slug: "ola-mundo",
+    video: "/projetos/ola-mundo.webm",
+    videoMp4: "/projetos/ola-mundo.mp4",
+    poster: "/projetos/ola-mundo-poster.webp",
     screenshot: "/projetos/ola-mundo.png",
     nome: "Olá Mundo",
     link: "https://alura-ola-mundo.vercel.app/",
@@ -213,36 +245,65 @@ export const portfolioProjects: Project[] = [
   },
   {
     slug: "softcode",
+    video: "/projetos/softcode.webm",
+    videoMp4: "/projetos/softcode.mp4",
+    poster: "/projetos/softcode-poster.webp",
     screenshot: "/projetos/softcode.png",
     nome: "SoftCode",
     link: "https://softcodedev.com.br",
     grupo: "produto",
     entreguePor: "SoftCode",
     descricao: {
-      pt: "Site da software house da qual sou sócio: serviços, cases e contato, em português e inglês.",
-      en: "Site of the software house I co-own: services, cases and contact, in Portuguese and English.",
+      pt: "Site da software house da qual sou sócio: narrativa de scroll em oito cenas sobre um campo de partículas na GPU, com agendamento embutido.",
+      en: "Site of the software house I co-own: an eight-scene scroll narrative over a GPU particle field, with booking built in.",
     },
+    // Reescrito em 2026-08-12: o site foi refeito (v2) e o case anterior
+    // descrevia outra página. Redigido a partir do repositório da v2 e da
+    // página no ar, não do release antigo — as rotas, a contagem de partículas
+    // e a grade do agendamento saíram do código, não da documentação (o
+    // `CLAUDE.md` de lá ainda diz "~60k partículas", e a fonte diz outra coisa).
     case: {
       contexto: {
-        pt: "A SoftCode é a software house da qual sou sócio, e o site dela é a primeira coisa que um cliente vê antes de qualquer conversa. Ele precisa dizer o que a casa faz, mostrar o que já foi entregue e abrir um canal, em dois idiomas, porque parte do contato chega de fora.",
-        en: "SoftCode is the software house I co-own, and its site is the first thing a client sees before any conversation. It has to say what the shop does, show what has shipped and open a channel, in two languages, because part of the contact comes from abroad.",
+        pt: "A SoftCode é a software house da qual sou sócio, e o site dela é a primeira coisa que um cliente vê antes de qualquer conversa. A tese da segunda versão é que o site seja a prova: uma casa que vende software feito à mão não pode se apresentar num template, então a home virou uma narrativa única de scroll e a primeira reunião passou a ser marcada ali mesmo, sem formulário de qualificação no caminho.",
+        en: "SoftCode is the software house I co-own, and its site is the first thing a client sees before any conversation. The premise of the second version is that the site is the proof: a shop that sells hand-written software cannot introduce itself with a template, so the home became a single scroll narrative and the first meeting is now booked right there, with no qualification form in the way.",
       },
       papel: {
-        pt: "Sócio e responsável pelo site, do escopo ao deploy. Construí a estrutura de serviços, cases e contato numa base bilíngue de verdade (uma rota por idioma, não troca de string) e mantenho a página depois da publicação.",
-        en: "Partner, and responsible for the site from scope to deploy. I built the services, cases and contact structure on a genuinely bilingual base (a route per language, not a string swap) and I maintain the page after launch.",
+        pt: "Sócio e responsável pelo site, do escopo ao deploy. Nesta versão isso incluiu o motor de cenas (uma fonte única define as oito faixas de scroll), o campo de partículas na GPU, o agendamento de ponta a ponta e a base bilíngue — e a manutenção depois da publicação.",
+        en: "Partner, and responsible for the site from scope to deploy. In this version that included the scene engine (a single source defines the eight scroll ranges), the GPU particle field, the booking flow end to end and the bilingual base, plus maintenance after launch.",
       },
-      stack: ["Next.js", "React", "TypeScript", "next-intl", "Three.js"],
+      stack: [
+        "Next.js",
+        "React",
+        "TypeScript",
+        "next-intl",
+        "Three.js",
+        "React Three Fiber",
+        "GSAP",
+        "Lenis",
+        "Zustand",
+        "CSS Modules",
+        "Zoom",
+        "Cloudflare Workers",
+      ],
       destaques: {
         pt: [
-          "Bilíngue por rota (`/` e `/en`), com serviços, sobre e contato em cada idioma: o conteúdo é traduzido, não duplicado à mão.",
-          "Vitrine de cases como prova: o que a casa entregou fica na própria página, não numa apresentação separada.",
-          "Three.js na composição da página, e não como enfeite isolado.",
+          "A home é uma narrativa de scroll em oito cenas, e as faixas de cada uma vivem num arquivo só: mudar onde uma cena começa não mexe nas fronteiras das vizinhas.",
+          "O campo de partículas roda na GPU e a contagem se adapta ao aparelho, pelo lado da textura de simulação: 6,4 mil no celular, 12,1 mil no desktop.",
+          "Bilíngue por rota prefixada (`/pt` e `/en`), e o caminho também é traduzido: `/servicos` responde por `/services`. Não é troca de string sobre a mesma URL.",
+          "A reunião de 30 minutos é marcada no próprio site, e a grade de horários mora num módulo só, importado pelo calendário no cliente e pelas duas rotas de API. É o que impede o cliente de oferecer um horário que o servidor recusa.",
+          "A sala do Zoom é criada por Server-to-Server OAuth em modo best-effort: se o Zoom não responde, a reserva já confirmada continua de pé e cai numa sala alternativa.",
+          "Os dois sites entregues são percorridos ao vivo dentro de uma moldura na página, e o escopo acende conforme a parte correspondente passa — em vez de um recorte parado da primeira dobra.",
+          "Com `prefers-reduced-motion` a experiência inteira não monta: sobra a casca semântica, que é a mesma coisa que quem está sem JS recebe.",
           "É a casa que entregou a Barbalog e a LyftConnect, e as duas creditam a SoftCode no rodapé.",
         ],
         en: [
-          "Bilingual by route (`/` and `/en`), with services, about and contact in each language: the content is translated, not hand-duplicated.",
-          "A case showcase as proof: what the shop delivered lives on the page itself, not in a separate deck.",
-          "Three.js used in the page composition, not as an isolated ornament.",
+          "The home is an eight-scene scroll narrative, and each scene's range lives in a single file: moving where one scene starts does not disturb its neighbours' boundaries.",
+          "The particle field runs on the GPU and the count adapts to the device through the simulation texture side: 6.4k on phones, 12.1k on desktop.",
+          "Bilingual by prefixed route (`/pt` and `/en`), and the path is translated too: `/servicos` answers as `/services`. It is not a string swap over the same URL.",
+          "The 30-minute meeting is booked on the site itself, and the slot grid lives in one module, imported by the client-side calendar and by both API routes. That is what stops the client offering a time the server would refuse.",
+          "The Zoom room is created through Server-to-Server OAuth on a best-effort basis: if Zoom does not answer, an already confirmed booking stands and falls back to an alternative room.",
+          "The two delivered sites are browsed live inside a frame on the page, with the scope lighting up as the matching part goes by, instead of a still crop of the fold.",
+          "Under `prefers-reduced-motion` the whole experience never mounts: what is left is the semantic shell, the same thing a visitor without JS receives.",
           "It is the shop that delivered Barbalog and LyftConnect, and both credit SoftCode in the footer.",
         ],
       },
@@ -301,6 +362,7 @@ export const portfolioProjects: Project[] = [
     video: "/projetos/lyftconnect.webm",
     videoMp4: "/projetos/lyftconnect.mp4",
     poster: "/projetos/lyftconnect-poster.webp",
+    screenshot: "/projetos/lyftconnect.png",
     nome: "LyftConnect",
     // Sem `www`: o host com `www` devolve 522 (o Cloudflare não alcança a
     // origem) e o apex responde 200. Mesmo caso já registrado na SoftCode.

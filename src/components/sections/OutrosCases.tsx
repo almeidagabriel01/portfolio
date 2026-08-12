@@ -6,15 +6,15 @@ import { useTranslations } from "@/hooks/useTranslations";
 import { useStore } from "@/store";
 
 /**
- * SEC-14: os outros projetos que têm case page.
+ * SEC-14: os outros projetos, que é o mesmo que "os outros cases".
  *
- * O filtro é duplo e os dois lados importam: sem `case` a rota devolve 404
- * (PORT-15), e o projeto atual não se lista a si mesmo.
+ * O filtro era duplo (`project.case && slug !== atual`) enquanto `case` era
+ * opcional, para não linkar para uma rota que devolveria 404. Com `case`
+ * obrigatório sobra a metade que ainda diz alguma coisa: o projeto atual não
+ * se lista a si mesmo.
  */
 export function outrosCases(projects: Project[], slugAtual: string): Project[] {
-  return projects.filter(
-    (project) => project.case && project.slug !== slugAtual,
-  );
+  return projects.filter((project) => project.slug !== slugAtual);
 }
 
 /**

@@ -86,7 +86,6 @@ function Destaque() {
   return (
     <ul className="w-calc grid gap-50 md:grid-cols-2 md:gap-x-32 md:gap-y-50">
       {TODOS.map((project) => {
-        const temCase = Boolean(project.case);
         return (
           <li key={project.slug} className="flex flex-col gap-24">
             <div className="flex flex-col gap-8">
@@ -112,11 +111,11 @@ function Destaque() {
                 {t.projects.tipos[project.grupo]}
               </p>
               <h3 className="type-m-24 text-ink">
+                {/* Sempre o case: `case` é obrigatório em `Project`. Antes,
+                    parte dos títulos abria o site em aba nova e parte navegava
+                    para dentro do site, na mesma grade. */}
                 <Link
-                  href={temCase ? `/projetos/${project.slug}` : project.link}
-                  {...(temCase
-                    ? {}
-                    : { target: "_blank", rel: "noopener noreferrer" })}
+                  href={`/projetos/${project.slug}`}
                   className="transition-colors duration-300 hover:text-accent focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none"
                 >
                   {project.nome}
@@ -129,7 +128,13 @@ function Destaque() {
 
             <JanelaViva
               src={project.link}
-              poster={`/projetos/${project.slug}.png`}
+              /* O caminho declarado no dado, não `/projetos/${slug}.png`
+                 montado aqui: o caminho montado supunha um arquivo que o dado
+                 não declarava, e a LyftConnect tinha exatamente esse par —
+                 `lyftconnect.png` no disco e nenhum `screenshot` no dado. Esta
+                 tela pintava, as outras não, com a mesma fonte de verdade
+                 dizendo coisas diferentes conforme quem perguntava. */
+              poster={project.screenshot}
               titulo={project.nome}
               abrir={t.projects.janela.abrir}
               fechar={t.projects.janela.fechar}
@@ -152,7 +157,6 @@ function Destaque() {
 function Linha({ project }: { project: Project }) {
   const t = useTranslations();
   const locale = useStore((state) => state.locale);
-  const temCase = Boolean(project.case);
   const grupo =
     project.grupo === "estudo"
       ? t.projects.groups.estudo
@@ -160,8 +164,7 @@ function Linha({ project }: { project: Project }) {
 
   return (
     <Link
-      href={temCase ? `/projetos/${project.slug}` : project.link}
-      {...(temCase ? {} : { target: "_blank", rel: "noopener noreferrer" })}
+      href={`/projetos/${project.slug}`}
       data-projeto={project.slug}
       className="group relative flex flex-col gap-8 border-t border-line py-16 transition-colors duration-300 hover:text-ink motion-reduce:transition-none md:h-64 md:flex-row md:items-center md:gap-32 md:py-0"
     >

@@ -13,6 +13,12 @@ function comStack(nome: string, stack: string[]): Project {
     slug: nome.toLowerCase(),
     nome,
     link: "https://exemplo.invalid/",
+    // As quatro mídias são obrigatórias em `Project`. Seguem a convenção de
+    // caminho do dado real; nada aqui as renderiza.
+    video: `/projetos/${nome.toLowerCase()}.webm`,
+    videoMp4: `/projetos/${nome.toLowerCase()}.mp4`,
+    poster: `/projetos/${nome.toLowerCase()}-poster.webp`,
+    screenshot: `/projetos/${nome.toLowerCase()}.png`,
     grupo: "cliente",
     entreguePor: "SoftCode",
     descricao: { pt: "", en: "" },

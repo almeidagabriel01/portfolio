@@ -104,46 +104,38 @@ test.describe("Rota /: hero", () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
     /**
-     * O `lazy` do `next/image` decide pela viewport, e um trilho horizontal
-     * esconde os cartões da direita atrás do próprio recorte: o `rootMargin`
-     * do observer não atravessa isso (medido, `9999px` na horizontal não muda
-     * um bit). O último cartão ficava com a imagem por carregar e, ao deslizar
-     * até ele, aparecia o `bg-ink/20` da caixa por ~370ms a 1,5 Mbps.
+     * **Uma apresentação só, para os sete cartões.**
      *
-     * A garantia é: alcançado o bloco, **todo** cartão tem o que pintar.
+     * Antes, dois projetos não tinham gravação e o carrossel misturava
+     * `<video>` com `<Image>` na mesma fileira. Não era só estética: o ramo do
+     * `<Image>` tinha um defeito que o do vídeo não tinha (o `lazy` do
+     * `next/image` decide pela viewport, e num trilho horizontal o cartão à
+     * direita nunca entra nela, então a captura ficava por carregar e a caixa
+     * aparecia cinza ao deslizar até lá).
      *
-     * Isto **não** é a piscada cinza do vídeo, que tem outra causa e outro
-     * sensor — ver o teste do fundo do `<video>` logo abaixo.
+     * O sensor conta os elementos: sete cartões, sete `<video>`, nenhuma
+     * `<img>`. Um projeto novo sem gravação reprova aqui antes de chegar na
+     * tela de alguém.
      */
-    test("todo cartão tem mídia pintável assim que o bloco é alcançado", async ({
+    test("todo cartão do carrossel é vídeo, e nenhum é imagem", async ({
       page,
     }) => {
       await page.goto("/");
-      await page
-        .locator('section[aria-labelledby="entregas"] video')
-        .first()
-        .scrollIntoViewIfNeeded();
+      const secao = 'section[aria-labelledby="entregas"]';
+      await page.locator(`${secao} video`).first().scrollIntoViewIfNeeded();
 
-      await expect
-        .poll(() =>
-          page.evaluate(() =>
-            [
-              ...document.querySelectorAll(
-                'section[aria-labelledby="entregas"] img',
-              ),
-            ].every((n) => (n as HTMLImageElement).naturalWidth > 0),
-          ),
-        )
-        .toBe(true);
+      expect(await page.locator(`${secao} ul li`).count()).toBe(7);
+      expect(await page.locator(`${secao} video`).count()).toBe(7);
+      expect(await page.locator(`${secao} img`).count()).toBe(0);
 
-      // Vídeo sem poster também abriria a caixa cinza no primeiro quadro.
+      // Vídeo sem poster abriria a caixa cinza no primeiro quadro.
       expect(
-        await page.evaluate(() =>
-          [
-            ...document.querySelectorAll(
-              'section[aria-labelledby="entregas"] video',
-            ),
-          ].every((n) => Boolean((n as HTMLVideoElement).poster)),
+        await page.evaluate(
+          (s) =>
+            [
+              ...document.querySelectorAll<HTMLVideoElement>(`${s} video`),
+            ].every((n) => Boolean(n.poster)),
+          secao,
         ),
       ).toBe(true);
     });

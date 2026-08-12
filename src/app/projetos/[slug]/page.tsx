@@ -8,9 +8,8 @@ import { CaseStudyView } from "./CaseStudyView";
  * único pedaço que precisa do `locale` do store.
  */
 export function generateStaticParams() {
-  return portfolioProjects
-    .filter((project) => project.case)
-    .map((project) => ({ slug: project.slug }));
+  // Sem filtro: `case` é obrigatório, então todo projeto tem rota.
+  return portfolioProjects.map((project) => ({ slug: project.slug }));
 }
 
 export default async function CasePage({
@@ -21,9 +20,8 @@ export default async function CasePage({
   const { slug } = await params;
   const project = portfolioProjects.find((entry) => entry.slug === slug);
 
-  // Projeto do grupo `estudo` não tem `case`: para a rota, é indistinguível de
-  // um slug que não existe (PORT-15).
-  if (!project?.case) notFound();
+  // Só o slug que não existe cai aqui: todo projeto tem case (PORT-15).
+  if (!project) notFound();
 
   return <CaseStudyView project={project} caseStudy={project.case} />;
 }

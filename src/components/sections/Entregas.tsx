@@ -1,10 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import Image, { getImageProps } from "next/image";
 import { LinkDeRota as Link } from "@/components/ui/LinkDeRota";
 import { useEffect, useRef, useState } from "react";
-import { preload } from "react-dom";
 import { CampoDeBlocos } from "@/components/canvas/CampoDeBlocos";
 import { CanvasDoCampo } from "@/components/canvas/CanvasDoCampo";
 import { TituloDistribuido } from "@/components/motion/TituloDistribuido";
@@ -257,37 +255,14 @@ export function Entregas() {
    */
   const ehLargo = useMediaQuery("(min-width: 48rem)");
 
-  /**
-   * **A mídia do hover é buscada antes do hover, no largo.**
-   *
-   * A camada só monta quando o ponteiro chega, e aí ela fica **vazia** enquanto
-   * a imagem desce: medido a 1,5 Mbps, ~330ms de camada em opacidade cheia sem
-   * nada pintado nas duas células de captura. Os posters dos vídeos não sofrem
-   * disso porque o HTML do servidor traz a marcação do estreito e o browser já
-   * os baixou; as capturas, não — o cartão do estreito pede a variante de
-   * 384px e a camada do largo pede outra.
-   *
-   * `getImageProps` dá exatamente a URL que o `<Image>` vai pedir (com o mesmo
-   * `sizes`), então o `preload` aquece o cache certo, e não uma variante que
-   * ninguém usa.
-   */
-  useEffect(() => {
-    if (!blocoPerto || !ehLargo) return;
-    for (const project of NA_GRADE) {
-      if (project.video || !project.screenshot) continue;
-      const { props } = getImageProps({
-        src: project.screenshot,
-        alt: "",
-        fill: true,
-        sizes: "(min-width: 48rem) 50vw, 100vw",
-      });
-      preload(props.src, {
-        as: "image",
-        imageSrcSet: props.srcSet,
-        imageSizes: props.sizes,
-      });
-    }
-  }, [blocoPerto, ehLargo]);
+  /*
+    Aqui existia um `preload` das capturas do hover: a camada do largo montava
+    **vazia** por ~330ms nas duas células que não tinham vídeo, porque o poster
+    dos vídeos já vinha baixado pelo HTML do estreito e a captura não. As duas
+    células agora têm vídeo como todas as outras (`Project.video` é
+    obrigatório), então não há mais uma segunda mídia para aquecer: o poster
+    serve as duas apresentações e desce uma vez só.
+  */
 
   const indiceEmDestaque = NA_GRADE.findIndex(
     (project) => project.slug === emDestaque,
@@ -348,7 +323,7 @@ export function Entregas() {
                 `<video>` só, trocando de `src`, salta.
               */}
               <AnimatePresence>
-                {destacado && (destacado.video || destacado.screenshot) && (
+                {destacado && (
                   <motion.div
                     key={destacado.slug}
                     /*
@@ -399,58 +374,37 @@ export function Entregas() {
                       a janela abre e o quadro chega no mesmo instante, sem
                       sobra deslizando depois que não há mais o que abrir.
                     */}
-                    {destacado.video ? (
-                      <motion.video
-                        poster={destacado.poster}
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        initial={{ scale: 1.08 }}
-                        animate={{ scale: 1 }}
-                        transition={TRANSICAO_DA_ABERTURA}
-                        style={{
-                          transformOrigin: origemDaCelula(indiceEmDestaque),
-                          // O mesmo piso do cartão do estreito: `autoPlay`
-                          // derruba a *show poster flag* já na montagem, e a
-                          // camada abriria vazia no vão até o primeiro quadro.
-                          // Ver o `<video>` da `Celula`.
-                          backgroundImage: `url("${destacado.poster}")`,
-                        }}
-                        className="size-full bg-cover bg-top bg-no-repeat object-cover object-top"
-                      >
-                        {/* WebM primeiro: quem sabe VP9 baixa o menor. */}
-                        <source src={destacado.video} type="video/webm" />
-                        <source src={destacado.videoMp4} type="video/mp4" />
-                      </motion.video>
-                    ) : (
-                      /* Sem gravação, a captura parada. Mesmo empurrão e mesma
-                         origem: o que muda é só a mídia dentro do recorte, e a
-                         célula continua abrindo igual às outras cinco. */
-                      <motion.div
-                        initial={{ scale: 1.08 }}
-                        animate={{ scale: 1 }}
-                        transition={TRANSICAO_DA_ABERTURA}
-                        style={{
-                          transformOrigin: origemDaCelula(indiceEmDestaque),
-                        }}
-                        className="relative size-full"
-                      >
-                        <Image
-                          src={destacado.screenshot!}
-                          alt=""
-                          fill
-                          /*
-                            **A camada é metade do bloco, não a viewport.** Com
-                            `100vw` o `next/image` servia a variante de 1920px
-                            (39 kB medidos) para uma caixa de 669: mais bytes e
-                            mais espera para o mesmo pixel.
-                          */
-                          sizes="(min-width: 48rem) 50vw, 100vw"
-                          className="object-cover object-top"
-                        />
-                      </motion.div>
-                    )}
+                    {/*
+                      Uma mídia só, para os sete. Aqui havia um ramo com
+                      `<Image>` para os projetos sem gravação: a mesma célula
+                      abria com vídeo num projeto e com captura parada no
+                      vizinho, e as duas versões tinham timing e modo de falha
+                      diferentes. Com `Project.video` obrigatório o ramo não
+                      tem mais o que atender.
+                    */}
+                    <motion.video
+                      poster={destacado.poster}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      initial={{ scale: 1.08 }}
+                      animate={{ scale: 1 }}
+                      transition={TRANSICAO_DA_ABERTURA}
+                      style={{
+                        transformOrigin: origemDaCelula(indiceEmDestaque),
+                        // O mesmo piso do cartão do estreito: `autoPlay`
+                        // derruba a *show poster flag* já na montagem, e a
+                        // camada abriria vazia no vão até o primeiro quadro.
+                        // Ver o `<video>` da `Celula`.
+                        backgroundImage: `url("${destacado.poster}")`,
+                      }}
+                      className="size-full bg-cover bg-top bg-no-repeat object-cover object-top"
+                    >
+                      {/* WebM primeiro: quem sabe VP9 baixa o menor. */}
+                      <source src={destacado.video} type="video/webm" />
+                      <source src={destacado.videoMp4} type="video/mp4" />
+                    </motion.video>
                     {/*
                       Véu fixo sobre a mídia, e o número é medido, não gostado.
 
@@ -507,7 +461,6 @@ export function Entregas() {
                 rotuloDaAtribuicao={t.deliveries.by}
                 rotuloDeEstudo={t.projects.groups.estudo}
                 rotuloDoCase={t.projects.viewCase}
-                rotuloDoSite={t.caseStudy.visit}
                 emDestaque={emDestaque}
                 temPonteiro={temPonteiro}
                 blocoPerto={blocoPerto}
@@ -618,7 +571,6 @@ interface CelulaProps {
   rotuloDaAtribuicao: string;
   rotuloDeEstudo: string;
   rotuloDoCase: string;
-  rotuloDoSite: string;
   emDestaque: string | null;
   temPonteiro: boolean;
   /** O bloco da mídia está perto da viewport? Ver o observador em `Entregas`. */
@@ -637,7 +589,6 @@ function Celula({
   rotuloDaAtribuicao,
   rotuloDeEstudo,
   rotuloDoCase,
-  rotuloDoSite,
   emDestaque,
   temPonteiro,
   blocoPerto,
@@ -674,7 +625,7 @@ function Celula({
    * ativo muda enquanto o elemento continua o mesmo. O `load()` é o que faz o
    * elemento reparar nos `<source>` que acabaram de aparecer.
    */
-  const deveTocar = !ehLargo && Boolean(project.video) && ativo && blocoPerto;
+  const deveTocar = !ehLargo && ativo && blocoPerto;
   useEffect(() => {
     const video = midia.current;
     if (!video) return;
@@ -690,17 +641,18 @@ function Celula({
 
   /**
    * A célula inteira é o link, como em navegador. Não há botão nenhum dentro
-   * dela. O destino é o case quando existe e o site ao vivo quando não: exigir
-   * case de um exercício de curso deixaria três células mortas.
+   * dela, e o destino é sempre o case: `case` é obrigatório em `Project`.
+   *
+   * Havia aqui um `temCase ? case : site ao vivo` que também trocava o alvo
+   * (aba nova) e o rótulo acessível. Duas células podiam sair do site e cinco
+   * não, na mesma fileira.
    */
-  const temCase = Boolean(project.case);
-  const href = temCase ? `/projetos/${project.slug}` : project.link;
+  const href = `/projetos/${project.slug}`;
 
   return (
     <LinkAnimado
       href={href}
-      {...(temCase ? {} : { target: "_blank", rel: "noopener noreferrer" })}
-      aria-label={`${temCase ? rotuloDoCase : rotuloDoSite} ${project.nome}`}
+      aria-label={`${rotuloDoCase} ${project.nome}`}
       // `onHoverStart`/`onHoverEnd` do motion e não `onMouseEnter`: o motion
       // filtra ponteiro grosso, e o `mouseenter` sintético do toque deixaria a
       // célula presa em destaque depois de um tap.
@@ -717,39 +669,16 @@ function Celula({
       */}
       <div className="relative h-345 w-full overflow-clip rounded-[1.6rem] bg-ink/20 md:absolute md:inset-0 md:h-auto md:rounded-none md:bg-transparent">
         {/* Só no estreito: no largo quem mostra a mídia é a camada única da
-            malha, e um screenshot por célula devolveria as sete janelinhas.
-            Sem vídeo entra a captura parada: o cartão do estreito é 265 × 345 e
-            uma caixa dessas sem mídia lê como imagem que não carregou, não como
-            escolha. */}
-        {!ehLargo && !project.video && project.screenshot && (
-          <>
-            <Image
-              src={project.screenshot}
-              alt=""
-              fill
-              sizes="265px"
-              /**
-               * **`eager` assim que o carrossel se aproxima, e é o que mata a
-               * piscada cinza.**
-               *
-               * O `lazy` do `next/image` decide pela viewport, e num trilho
-               * horizontal o cartão que está seis posições à direita nunca
-               * entra nela: medido, a imagem do último cartão continuava com
-               * `complete: false` mesmo com o carrossel inteiro na tela. Ao
-               * deslizar até ele, o que aparecia era o `bg-ink/20` da caixa —
-               * o cinza — até a imagem chegar.
-               *
-               * Trocar o atributo depois da montagem **dispara** o download
-               * (é o que a especificação manda), então nada é baixado antes de
-               * o visitante chegar perto da seção.
-               */
-              loading={blocoPerto ? "eager" : "lazy"}
-              className="object-cover object-top"
-            />
-            <div aria-hidden className="absolute inset-0 bg-black/15" />
-          </>
-        )}
-        {!ehLargo && project.video && (
+            malha, e um vídeo por célula devolveria as sete janelinhas.
+
+            Aqui existia um segundo ramo, com `<Image>`, para os projetos que
+            não tinham gravação — dois dos sete. Ele trazia junto o problema de
+            carregamento que o ramo do vídeo não tem: o `lazy` do `next/image`
+            decide pela viewport, e num trilho horizontal o cartão seis
+            posições à direita nunca entra nela, então a captura ficava por
+            carregar e a caixa aparecia cinza ao deslizar até lá. Dois ramos,
+            dois modos de falha. Com `Project.video` obrigatório sobra um. */}
+        {!ehLargo && (
           <>
             <video
               ref={midia}

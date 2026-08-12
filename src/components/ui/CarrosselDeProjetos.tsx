@@ -60,20 +60,19 @@ export function CarrosselDeProjetos({ projects }: { projects: Project[] }) {
               */}
               <div className="relative aspect-[16/10] overflow-hidden rounded-sm bg-surface">
                 {/*
-                  Caso de borda do spec: projeto sem screenshot renderiza sem
-                  imagem. O bloco mantém a proporção (é o `aspect` do
-                  contêiner que segura o layout, não a imagem), então a
-                  trilha não desalinha e os vizinhos continuam onde estavam.
+                  Aqui havia uma guarda para "projeto sem screenshot": o slide
+                  renderizava sem imagem, e só a LyftConnect exercitava isso,
+                  por causa de uma captura antiga que falhou. `screenshot` é
+                  obrigatório desde que a captura foi refeita, então o slide
+                  vazio deixou de ser um estado alcançável.
                 */}
-                {project.screenshot && (
-                  <Image
-                    src={project.screenshot}
-                    alt={project.nome}
-                    width={1280}
-                    height={800}
-                    className="size-full object-cover object-top"
-                  />
-                )}
+                <Image
+                  src={project.screenshot}
+                  alt={project.nome}
+                  width={1280}
+                  height={800}
+                  className="size-full object-cover object-top"
+                />
                 <span
                   aria-hidden
                   className="absolute bottom-0 left-0 size-6 bg-accent"

@@ -37,7 +37,7 @@ export function aggregateStack(projects: Project[]): TecnologiaTransversal[] {
     // seção fala do que atravessa as **entregas**, e é isso que dá peso à
     // contagem de projetos por tecnologia.
     if (project.grupo === "estudo") continue;
-    for (const tecnologia of project.case?.stack ?? []) {
+    for (const tecnologia of project.case.stack) {
       if (tecnologia.startsWith(MARCADOR)) continue;
       const entregas = porTecnologia.get(tecnologia) ?? [];
       entregas.push(project.nome);

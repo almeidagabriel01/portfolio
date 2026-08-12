@@ -362,27 +362,16 @@ describe("screenshots do carrossel (UI-09)", () => {
     const { existsSync } = await import("node:fs");
     const { join } = await import("node:path");
 
-    const declarados = portfolioProjects.filter((p) => p.screenshot);
-    // Sem piso, um dado sem screenshot nenhum passaria por vacuidade.
-    expect(declarados.length).toBeGreaterThan(3);
+    // Todos, não os que declararam: `screenshot` é obrigatório.
+    expect(portfolioProjects.length).toBeGreaterThan(3);
 
-    for (const project of declarados) {
+    for (const project of portfolioProjects) {
       expect(project.screenshot).toMatch(/^\/projetos\/[a-z0-9-]+\.png$/);
       expect(
-        existsSync(join(process.cwd(), "public", project.screenshot!)),
+        existsSync(join(process.cwd(), "public", project.screenshot)),
         `screenshot declarado e ausente do disco: ${project.screenshot}`,
       ).toBe(true);
     }
-  });
-
-  /**
-   * O caso de borda do spec, e ele é real: a LyftConnect devolveu HTTP 522 na
-   * captura. Sem este piso, alguém "consertaria" o dado dando screenshot a
-   * todo mundo e o caminho sem imagem deixaria de ser exercitado, e o teste de
-   * layout do slide sem imagem passaria a medir nada.
-   */
-  it("ao menos um projeto não tem screenshot", () => {
-    expect(portfolioProjects.filter((p) => !p.screenshot).length).toBeGreaterThan(0);
   });
 
   /**
@@ -395,8 +384,8 @@ describe("screenshots do carrossel (UI-09)", () => {
     const { existsSync } = await import("node:fs");
     const { join } = await import("node:path");
     const declarados = portfolioProjects.flatMap((project) =>
-      [project.video, project.videoMp4, project.poster].filter(Boolean),
-    ) as string[];
+      [project.video, project.videoMp4, project.poster],
+    );
 
     expect(declarados.length).toBeGreaterThan(0);
     for (const caminho of declarados) {
@@ -409,15 +398,34 @@ describe("screenshots do carrossel (UI-09)", () => {
   });
 
   /**
-   * O poster **tem de acompanhar o vídeo**. Um vídeo sem poster é a célula
-   * preta de novo; um poster sem vídeo é um quadro parado que nunca anima.
+   * **Todo projeto tem as quatro mídias — este é o piso, não um "andam em
+   * trio".**
+   *
+   * A versão anterior media coerência (`poster` se e somente se `video`), e
+   * passava num dado em que dois dos sete não tinham vídeo nenhum. Era daí que
+   * saía a divergência de comportamento: a mesma célula da home era `<video>`
+   * num projeto e `<Image>` no vizinho, e cada superfície de mídia carregava
+   * um ramo por caso.
+   *
+   * O tipo já exige os quatro campos, mas tipo não sobrevive a `as any` nem a
+   * fixture parcial de teste — e é assim que a divergência voltaria. O piso é
+   * aqui.
    */
-  it("vídeo, fallback e poster andam sempre em trio", () => {
+  it("todo projeto declara vídeo, fallback H.264, poster e screenshot", () => {
     for (const project of portfolioProjects) {
-      const tem = Boolean(project.video);
-      expect(Boolean(project.poster), `poster sem vídeo: ${project.slug}`).toBe(tem);
+      expect(project.video, `sem vídeo: ${project.slug}`).toMatch(
+        /^\/projetos\/[a-z0-9-]+\.webm$/,
+      );
       // Sem o H.264 o iOS anterior ao 17.4 fica no poster para sempre.
-      expect(Boolean(project.videoMp4), `sem fallback H.264: ${project.slug}`).toBe(tem);
+      expect(project.videoMp4, `sem fallback H.264: ${project.slug}`).toMatch(
+        /^\/projetos\/[a-z0-9-]+\.mp4$/,
+      );
+      expect(project.poster, `sem poster: ${project.slug}`).toMatch(
+        /^\/projetos\/[a-z0-9-]+-poster\.webp$/,
+      );
+      expect(project.screenshot, `sem screenshot: ${project.slug}`).toMatch(
+        /^\/projetos\/[a-z0-9-]+\.png$/,
+      );
     }
   });
 
