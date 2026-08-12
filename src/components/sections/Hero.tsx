@@ -156,8 +156,10 @@ export function Hero({ rotulo, frases: frasesDaRota }: Props = {}) {
         o porquê de não ser um recorte de canvas fixo).
 
         O rastro só existe onde há ponteiro: sem `hover: hover` não há mouse
-        para deixar rastro, e ele custa dois render targets e um render por
-        frame. É o mesmo critério que a `Entregas` usa para o hover dos cards.
+        para deixar rastro, e ele custa um render extra por frame e um listener
+        de `pointermove` (os dois render targets o `CampoDeBlocos` aloca de
+        qualquer jeito). É o mesmo critério que a `Entregas` usa para o hover
+        dos cards.
       */}
       <div ref={areaDoCampo} className="absolute inset-0">
         <CanvasDoCampo>

@@ -394,3 +394,28 @@ button {
     transform: translate(0);
   }
 }
+
+/**
+ * O invólucro que o R3F cria em volta do `<canvas>` de cada campo.
+ *
+ * **Piso primeiro, arredondamento depois, e a ordem é o ponto.** O R3F escreve
+ * `width: 100%; height: 100%` inline no invólucro e mistura o `style` que
+ * recebe por cima. Passando o `round()` por lá, um browser que não entenda a
+ * função descarta a declaração inteira e a altura cai para `auto` — invólucro
+ * de altura zero, campo que não pinta. Aqui o 100% é incondicional e o
+ * `round()` só entra atrás de `@supports`.
+ *
+ * Sobre o porquê de arredondar, ver `CanvasDoCampo`: caixa fracionária (o painel
+ * da `Empresas` mede 487,5px) faz o browser reamostrar um efeito de 1 bit.
+ */
+.canvas-do-campo {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+@supports (width: round(up, 100%, 1px)) {
+  .canvas-do-campo {
+    width: round(up, 100%, 1px) !important;
+    height: round(up, 100%, 1px) !important;
+  }
+}

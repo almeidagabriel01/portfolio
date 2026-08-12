@@ -70,6 +70,60 @@ test.describe("Um canvas por campo (AD-047)", () => {
     );
   });
 
+  /**
+   * **Uma volta não é teste de vazamento.** Contexto WebGL não descartado só
+   * aparece depois de algumas: o browser recusa o contexto novo, e o campo
+   * nasce preto. Oito idas e voltas entre a home (3 campos) e `/projetos` (1)
+   * são 24 criações; se a disposição estivesse quebrada, o teto do Chrome (16
+   * contextos vivos) cairia bem antes do fim.
+   *
+   * A asserção final não é só "o canvas existe": é **o loop andando**. Canvas
+   * com contexto perdido continua no DOM.
+   */
+  test("ir e voltar oito vezes não esgota o contexto WebGL", async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await page.goto("/");
+    const nav = page.getByRole("navigation", { name: "Navegação de rotas" });
+
+    for (let volta = 0; volta < 8; volta++) {
+      await nav.getByRole("link", { name: "Projetos" }).click();
+      await page.waitForURL("/projetos");
+      await expect(page.locator("canvas")).toHaveCount(1);
+      await nav.getByRole("link", { name: "Início" }).click();
+      await page.waitForURL("/");
+      await expect(page.locator("canvas")).toHaveCount(3);
+    }
+
+    /**
+     * A prova fica em `/projetos`, que tem **um** campo só: o seam
+     * `__campoRenderer` aponta para o último canvas criado, e na home o último
+     * pode ser um painel fora da tela — cujo contador fica em 0 de propósito,
+     * porque campo fora da tela não desenha.
+     */
+    await nav.getByRole("link", { name: "Projetos" }).click();
+    await page.waitForURL("/projetos");
+    const frames = () =>
+      page.evaluate(() => window.__campoRenderer?.info.render.frame ?? -1);
+    await page.waitForFunction(
+      () => (window.__campoRenderer?.info.render.frame ?? 0) > 0,
+    );
+    const antes = await frames();
+    await page.waitForTimeout(600);
+    expect(await frames()).toBeGreaterThan(antes);
+
+    // E é canvas vivo, não nó morto no DOM com o contexto perdido.
+    expect(
+      await page.evaluate(() => {
+        const canvas = document.querySelector(
+          'section[data-name="hero"] canvas',
+        ) as HTMLCanvasElement | null;
+        return Boolean(canvas && !canvas.getContext("webgl2")?.isContextLost());
+      }),
+    ).toBe(true);
+  });
+
   test("o conteúdo textual continua chegando por SSR", async ({ request }) => {
     expect(await (await request.get("/")).text()).toContain(
       "Gabriel Almeida Dias",

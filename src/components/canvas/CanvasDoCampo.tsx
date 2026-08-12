@@ -1,13 +1,7 @@
 "use client";
 
 import { Canvas, useThree } from "@react-three/fiber";
-import {
-  Component,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { isWebGLAvailable } from "@/lib/webgl";
 import { useStore } from "@/store";
@@ -223,7 +217,8 @@ export function CanvasDoCampo({ children }: { children: ReactNode }) {
          */
         frameloop="never"
         /**
-         * **`round(up, 100%, 1px)`, e isso não é preciosismo.**
+         * **A caixa do canvas é arredondada para cima, e isso não é
+         * preciosismo.**
          *
          * O painel da `Empresas` mede 487,5px (a largura sai de `cqw`, não de
          * um número redondo). O R3F dimensiona o buffer em inteiros, então o
@@ -231,19 +226,18 @@ export function CanvasDoCampo({ children }: { children: ReactNode }) {
          * a diferença. Num efeito de **1 bit** isso não passa despercebido:
          * medido em dpr 1, a cobertura do painel subia de 5,90% para 9,52% e os
          * pixels de âmbar puro caíam de 14.047 para 3.189 — o resto virava
-         * borda interpolada. Em dpr 2 não aparece (487,5 × 2 = 975, exato), e
-         * era assim que o `<View>` sempre desenhou: recorte inteiro dentro de um
-         * canvas do tamanho da viewport.
+         * borda interpolada. Era assim que o `<View>` sempre desenhou: recorte
+         * inteiro dentro de um canvas do tamanho da viewport.
          *
-         * Arredondar para cima devolve o 1:1; a sobra de meio pixel morre no
-         * `overflow-clip` do painel. Onde a caixa já é inteira (hero, painel da
-         * `Entregas`) a regra não muda nada.
+         * A regra mora em `globals.css`, e não neste `style`, porque precisa de
+         * `@supports` **e** de um piso de 100%: o `style` inline substitui o do
+         * R3F, e um `round()` que o browser não entenda levaria a altura junto
+         * — invólucro de altura zero, campo que não pinta. A sobra de meio
+         * pixel morre no `overflow-clip` do painel; onde a caixa já é inteira
+         * (hero, painel da `Entregas`) nada muda.
          */
-        style={{
-          pointerEvents: "none",
-          width: "round(up, 100%, 1px)",
-          height: "round(up, 100%, 1px)",
-        }}
+        className="canvas-do-campo"
+        style={{ pointerEvents: "none" }}
         onCreated={(state) => {
           if (process.env.NEXT_PUBLIC_E2E) {
             window.__campoRenderer = state.gl;
