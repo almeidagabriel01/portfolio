@@ -87,6 +87,42 @@ test.describe("Rota /: hero", () => {
   });
 
   // "Conteúdo chega por SSR (visível com JS desabilitado)".
+  /**
+   * **Nenhum `<source>` de vídeo antes de alguém chegar ao carrossel.**
+   *
+   * Medido no WebKit, que é o motor do Safari: um `<video>` com `<source>`
+   * filho segura o evento `load` da página enquanto faz a seleção de recurso,
+   * mesmo com `preload="none"`. Os cinco cartões do carrossel seguravam o
+   * `load` da home por **3,2 segundos** — e o Safari só restaura a posição de
+   * scroll no `load`, então recarregar no meio da hero devolvia o visitante ao
+   * topo por três segundos antes de a página cair de volta no lugar.
+   *
+   * O sensor é estrutural porque o sintoma não é: no Chromium o `load` não
+   * espera, e o teste passaria com o defeito de pé.
+   */
+  test.describe("mídia do carrossel", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("nenhum vídeo carrega antes de o carrossel ser alcançado", async ({
+      page,
+    }) => {
+      await page.goto("/");
+      await expect(page.locator("video")).not.toHaveCount(0);
+      await expect(page.locator("video source")).toHaveCount(0);
+
+      const primeiro = page
+        .locator('section[aria-labelledby="entregas"] video')
+        .first();
+      await primeiro.scrollIntoViewIfNeeded();
+
+      // Só o slide corrente: os outros continuam no poster.
+      await expect(page.locator("video source")).toHaveCount(2);
+      await expect
+        .poll(() => primeiro.evaluate((v: HTMLVideoElement) => v.paused))
+        .toBe(false);
+    });
+  });
+
   test.describe("com JavaScript desabilitado", () => {
     test.use({ javaScriptEnabled: false });
 

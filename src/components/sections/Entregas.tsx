@@ -10,6 +10,7 @@ import { TituloDistribuido } from "@/components/motion/TituloDistribuido";
 import { Botao, SetaDireita } from "@/components/ui/Botao";
 import { Carrossel } from "@/components/ui/Carrossel";
 import { portfolioProjects, type Project } from "@/data/projects";
+import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useTranslations } from "@/hooks/useTranslations";
 import { EASE } from "@/lib/motion";
@@ -526,22 +527,49 @@ function Celula({
   aoSair,
 }: CelulaProps) {
   const midia = useRef<HTMLVideoElement>(null);
+  /**
+   * O cartão está na tela? O carrossel fica bem abaixo da primeira dobra, e é
+   * isto que impede o vídeo de existir para o browser antes de alguém chegar
+   * perto dele. Ver `deveTocar`.
+   */
+  const [caixaDaMidia, naTela] = useIntersectionObserver<HTMLDivElement>({
+    threshold: 0,
+    rootMargin: "200px",
+  });
 
   /**
-   * **Um decodificador, não seis.** No estreito os seis cartões existem ao
-   * mesmo tempo, e `autoPlay` em todos põe seis vídeos decodificando em
-   * paralelo num aparelho de bateria. Quem toca é o slide corrente; os outros
-   * ficam no primeiro quadro, que é o `poster`.
+   * **Um decodificador, não sete — e nenhum antes da hora.**
+   *
+   * No estreito todos os cartões existem ao mesmo tempo, e `autoPlay` em todos
+   * põe sete vídeos decodificando em paralelo num aparelho de bateria. Quem
+   * toca é o slide corrente; os outros ficam no primeiro quadro, que é o
+   * `poster`.
+   *
+   * **E o `<source>` só entra no DOM quando o cartão está na tela**, o que não
+   * é micro-otimização: medido no WebKit (motor do Safari), um `<video>` com
+   * `<source>` filho **segura o evento `load` da página** enquanto faz a
+   * seleção de recurso, mesmo com `preload="none"` — cinco cartões seguravam o
+   * `load` da home por **3,2 segundos**, com DOMContentLoaded aos 22ms e nenhum
+   * recurso pendente. E o Safari só restaura a posição de scroll **no `load`**:
+   * recarregar a página no meio da hero deixava o visitante no topo por três
+   * segundos e depois jogava a página para onde ele estava. Sem `<source>`, a
+   * seleção de recurso termina na hora e o `load` volta a ser imediato.
    *
    * Por efeito e não por `autoPlay`: o atributo só vale na montagem, e o slide
-   * ativo muda enquanto o elemento continua o mesmo.
+   * ativo muda enquanto o elemento continua o mesmo. O `load()` é o que faz o
+   * elemento reparar nos `<source>` que acabaram de aparecer.
    */
+  const deveTocar = !ehLargo && Boolean(project.video) && ativo && naTela;
   useEffect(() => {
     const video = midia.current;
     if (!video) return;
-    if (ativo) void video.play().catch(() => {});
-    else video.pause();
-  }, [ativo]);
+    if (deveTocar) {
+      video.load();
+      void video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [deveTocar]);
   const alguem = emDestaque !== null;
   const este = emDestaque === project.slug;
   const aberto = temPonteiro ? (este ? 1 : 0) : 1;
@@ -573,7 +601,10 @@ function Celula({
         1.6rem); no largo ela cobre a célula inteira e vira o palco das três
         camadas do hover.
       */}
-      <div className="relative h-345 w-full overflow-clip rounded-[1.6rem] bg-ink/20 md:absolute md:inset-0 md:h-auto md:rounded-none md:bg-transparent">
+      <div
+        ref={caixaDaMidia}
+        className="relative h-345 w-full overflow-clip rounded-[1.6rem] bg-ink/20 md:absolute md:inset-0 md:h-auto md:rounded-none md:bg-transparent"
+      >
         {/* Só no estreito: no largo quem mostra a mídia é a camada única da
             malha, e um screenshot por célula devolveria as seis janelinhas.
             Sem vídeo entra a captura parada: o cartão do estreito é 265 × 345 e
@@ -601,16 +632,20 @@ function Celula({
               loop
               playsInline
               /*
-                Só o slide corrente baixa. Com `metadata` nos seis, abrir a home
-                no celular puxava ~190 kB de vídeo que ninguém ia ver; com
-                `none`, o cartão mostra o poster e o arquivo só desce quando o
-                dedo chega nele, que é quando o `play()` do efeito acima o pede.
+                Só o slide corrente, e só na tela, baixa. Com `metadata` em
+                todos, abrir a home no celular puxava ~190 kB de vídeo que
+                ninguém ia ver; assim o cartão mostra o poster e o arquivo só
+                desce quando o dedo chega nele.
               */
-              preload={ativo ? "auto" : "none"}
+              preload={deveTocar ? "auto" : "none"}
               className="absolute inset-0 size-full object-cover object-top"
             >
-              <source src={project.video} type="video/webm" />
-              <source src={project.videoMp4} type="video/mp4" />
+              {deveTocar && (
+                <>
+                  <source src={project.video} type="video/webm" />
+                  <source src={project.videoMp4} type="video/mp4" />
+                </>
+              )}
             </video>
             {/*
               O mesmo véu da camada do desktop, aqui dentro do cartão. O
