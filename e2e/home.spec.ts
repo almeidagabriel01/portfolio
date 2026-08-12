@@ -197,7 +197,7 @@ test.describe("Rota /: hero", () => {
     // de scroll quando o reveal dele é ligado ao scroll. É lenta por desenho.
     test.setTimeout(120_000);
     await page.goto("/");
-    await page.waitForFunction(() => Boolean(window.__backgroundRenderer));
+    await page.waitForFunction(() => Boolean(window.__campoRenderer));
     await page.waitForFunction(() => Boolean(window.__lenis));
 
     const { falhas, avaliados, fundoMaisClaro } =

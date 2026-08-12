@@ -1,93 +1,73 @@
 import { expect, test } from "@playwright/test";
 
-declare global {
-  interface Window {
-    /** Marca sobrevivente: um reload apagaria, uma navegação client-side não. */
-    __navSentinel?: boolean;
-  }
-}
-
 /**
- * **Tudo aqui é garantia do largo.** Abaixo do `md` não há canvas fixo: o hero
- * e o painel da `Empresas` têm canvas próprio, que remonta a cada rota de
- * propósito (o recorte do `<View>` descola no scroll de toque). O que vale lá
- * é "não acumula canvas", em `canvas-robustness`.
+ * **O AD-002 (canvas único e fixo) foi revogado; ver `CanvasDoCampo`.** Cada
+ * campo tem o seu `<Canvas>` dentro do elemento que ele preenche, porque um
+ * recorte pintado na main thread não fica colado em conteúdo que o compositor
+ * move no scroll de toque.
+ *
+ * O que era garantia aqui — "o mesmo nó DOM sobrevive à navegação" — deixou de
+ * existir de propósito. O que a substitui, e é o que este arquivo defende:
+ * **cada rota monta exatamente os campos que tem, e navegar não acumula nem
+ * vaza contexto**. Contexto vazado não dá erro: dá campo preto depois de
+ * algumas navegações, no aparelho com o teto mais baixo de contextos vivos.
  */
-test.describe("Canvas persistente entre rotas (AD-002)", () => {
-  // PORT-01: o coração da arquitetura.
-  test("o nó <canvas> é o mesmo objeto DOM antes e depois de navegar", async ({
-    page,
-  }) => {
-    await page.goto("/");
-    await page.waitForFunction(() => Boolean(window.__backgroundRenderer));
+const CAMPOS_POR_ROTA = {
+  // hero + painel da Entregas + painel da Empresas
+  "/": 3,
+  "/projetos": 1,
+  "/sobre": 1,
+  // A case page não tem hero nem painel.
+  "/projetos/barbalog": 0,
+} as const;
 
-    await page.evaluate(() => {
-      window.__navSentinel = true;
+test.describe("Um canvas por campo (AD-047)", () => {
+  for (const [rota, quantos] of Object.entries(CAMPOS_POR_ROTA)) {
+    test(`${rota} monta ${quantos} canvas`, async ({ page }) => {
+      await page.goto(rota);
+      if (quantos > 0) {
+        await page.waitForFunction(() => Boolean(window.__campoRenderer));
+      }
+      await expect(page.locator("canvas")).toHaveCount(quantos);
+      // Todo canvas mora dentro de uma seção: nenhum sobrou preso ao `<body>`.
+      await expect(page.locator("section canvas")).toHaveCount(quantos);
     });
-    const canvasBefore = await page.evaluateHandle(
-      () => window.__backgroundRenderer!.domElement,
-    );
+  }
 
-    // `/` ainda monta o Header legado, que também linka "Projetos", daí o
-    // escopo pela nav de rotas.
-    await page
-      .getByRole("navigation", { name: "Navegação de rotas" })
-      .getByRole("link", { name: "Projetos" })
-      .click();
-    await page.waitForURL("/projetos");
-
-    // Sem esta asserção, um reload completo faria o teste de identidade
-    // falhar por um motivo diferente do que ele investiga.
-    expect(await page.evaluate(() => window.__navSentinel === true)).toBe(true);
-
-    expect(
-      await page.evaluate(
-        (element) =>
-          element.isConnected &&
-          element === window.__backgroundRenderer?.domElement,
-        canvasBefore,
-      ),
-    ).toBe(true);
-    await expect(page.locator("canvas")).toHaveCount(1);
-  });
-
-  // "Canvas não está dentro do template.tsx": se estivesse, ele remontaria na
-  // navegação e o renderer começaria a contar frames do zero.
-  //
-  // O piso é 100 frames (~1,7s de loop) e não 5: com 5, um renderer remontado
-  // ultrapassava o valor anterior dentro da própria latência do `evaluate` e a
-  // comparação nunca podia falhar: o teste documentava a garantia sem
-  // defendê-la.
-  test("o contador de frames não reinicia ao trocar de rota", async ({
-    page,
-  }) => {
+  test("percorrer as quatro rotas não acumula canvas", async ({ page }) => {
     await page.goto("/");
-    await page.waitForFunction(
-      () => (window.__backgroundRenderer?.info.render.frame ?? 0) > 100,
-    );
-    const before = await page.evaluate(
-      () => window.__backgroundRenderer!.info.render.frame,
-    );
+    await page.waitForFunction(() => Boolean(window.__campoRenderer));
 
-    // `/` ainda monta o Header legado, que também linka "Projetos", daí o
-    // escopo pela nav de rotas.
+    const nav = page.getByRole("navigation", { name: "Navegação de rotas" });
+    // Termina em /projetos: é de lá que sai o link para a case page.
+    for (const [link, url] of [
+      ["Sobre", "/sobre"],
+      ["Início", "/"],
+      ["Projetos", "/projetos"],
+    ] as const) {
+      await nav.getByRole("link", { name: link }).click();
+      await page.waitForURL(url);
+      await expect(page.locator("canvas")).toHaveCount(
+        CAMPOS_POR_ROTA[url as keyof typeof CAMPOS_POR_ROTA],
+      );
+    }
+
+    // O rótulo "Ver o case" saiu da rota na fase C: quem leva à case page
+    // agora é o título do card de destaque.
     await page
-      .getByRole("navigation", { name: "Navegação de rotas" })
-      .getByRole("link", { name: "Projetos" })
+      .getByRole("heading", { level: 3, name: "Barbalog" })
+      .getByRole("link", { name: "Barbalog" })
       .click();
+    await page.waitForURL("/projetos/barbalog");
+    await expect(page.locator("canvas")).toHaveCount(0);
+
+    // E voltar remonta: o campo não fica preto depois do ciclo.
+    await page.goBack();
     await page.waitForURL("/projetos");
-
-    // Folga para um remount acontecer, se fosse acontecer: 500ms bastam para o
-    // `onCreated` de um `<Canvas>` novo reapontar o seam para um renderer
-    // zerado, e são curtos demais para esse renderer alcançar os 100+ frames
-    // do anterior.
-    await page.waitForTimeout(500);
-
-    expect(
-      await page.evaluate(
-        () => window.__backgroundRenderer!.info.render.frame,
-      ),
-    ).toBeGreaterThan(before);
+    await expect(page.locator("canvas")).toHaveCount(1);
+    await page.waitForFunction(
+      () => (window.__campoRenderer?.info.render.frame ?? 0) > 5,
+    );
   });
 
   test("o conteúdo textual continua chegando por SSR", async ({ request }) => {

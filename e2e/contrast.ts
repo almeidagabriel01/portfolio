@@ -83,7 +83,20 @@ export async function backgroundLuminanceIn(
   if (rects.length === 0) return [];
 
   const mascara = await page.addStyleTag({
-    content: "header, footer, main > * { visibility: hidden !important; }",
+    /**
+     * Esconde o conteúdo para fotografar **o que está atrás dele** — mas o
+     * campo tem de continuar aparecendo, porque é justamente contra ele que o
+     * texto do hero é cobrado.
+     *
+     * Antes o `<canvas>` ficava fora do `main`, num nó fixo do `<body>`, e
+     * escapava da máscara sozinho. Agora cada campo mora dentro da própria
+     * seção (ver `CanvasDoCampo`), então `main > *` o apagava junto e o hero
+     * passava a ser medido contra preto chapado: contraste inflado, exatamente
+     * o que a guarda `fundoMaisClaro` de `home.spec` denuncia. `visibility`
+     * é herdada e o filho pode reverter, então basta devolver o canvas.
+     */
+    content:
+      "header, footer, main > * { visibility: hidden !important; } canvas { visibility: visible !important; }",
   });
   const png = (await page.screenshot()).toString("base64");
   await mascara.evaluate((node) => (node as Element).remove());

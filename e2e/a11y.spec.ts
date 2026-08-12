@@ -18,7 +18,7 @@ test.describe("Auditoria de reduced-motion", () => {
     await page.waitForFunction(
       () => matchMedia("(prefers-reduced-motion: reduce)").matches,
     );
-    await page.waitForFunction(() => Boolean(window.__backgroundRenderer));
+    await page.waitForFunction(() => Boolean(window.__campoRenderer));
 
     // 1) Lenis: a instância existe, a suavização não.
     //
@@ -38,7 +38,7 @@ test.describe("Auditoria de reduced-motion", () => {
 
     // 2) Loop de render: nenhum frame novo.
     const frames = () =>
-      page.evaluate(() => window.__backgroundRenderer!.info.render.frame);
+      page.evaluate(() => window.__campoRenderer!.info.render.frame);
     const first = await frames();
     await page.waitForTimeout(600);
     expect(await frames()).toBe(first);
@@ -332,7 +332,8 @@ test.describe("Idioma do documento", () => {
     page.on("pageerror", (error) => errors.push(error.message));
 
     await page.goto("/");
-    await expect(page.locator("canvas")).toHaveCount(1);
+    // Três campos na home: hero, painel da Entregas, painel da Empresas.
+    await expect(page.locator("canvas")).toHaveCount(3);
 
     expect(errors).toEqual([]);
   });

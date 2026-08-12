@@ -117,7 +117,15 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
     referencia,
   ) {
     const config = { ...CAMPO_PADRAO, ...opcoes };
-    const { size, viewport, invalidate } = useThree();
+    /**
+     * Seletor por fatia, e não `useThree()` cru: sem seletor este componente
+     * assina o store inteiro e re-renderiza a cada mudança de estado do R3F —
+     * `frameloop` inclusive, que agora muda quando o campo entra e sai da tela.
+     * O AD-003 quer este componente **fora** do caminho de render.
+     */
+    const size = useThree((estado) => estado.size);
+    const viewport = useThree((estado) => estado.viewport);
+    const invalidate = useThree((estado) => estado.invalidate);
 
     // Efeito sem deps: roda depois de todo render. Ver o seam acima.
     useEffect(() => {

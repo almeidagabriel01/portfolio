@@ -1,13 +1,10 @@
 "use client";
 
-import { View } from "@react-three/drei";
 import { CampoDeBlocos } from "@/components/canvas/CampoDeBlocos";
 import { CanvasDoCampo } from "@/components/canvas/CanvasDoCampo";
 import { TituloDistribuido } from "@/components/motion/TituloDistribuido";
 import { Botao, SetaExterna } from "@/components/ui/Botao";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useTranslations } from "@/hooks/useTranslations";
-import { useStore } from "@/store";
 
 /**
  * SEC-02 e SEC-03: as duas empresas com composição societária e o que cada uma
@@ -54,14 +51,6 @@ const CAMPO = { escala: 0.625, brilho: 0.4705, raioDaBorda: 0.035 };
  */
 export function Empresas() {
   const t = useTranslations();
-  /**
-   * `useSyncExternalStore` por baixo: já no primeiro render do cliente o valor
-   * é o certo, então não há um frame com o ramo errado montado.
-   */
-  const ehLargo = useMediaQuery("(min-width: 768px)");
-  // Mesmo portão do `BackgroundCanvas`: `false` no servidor e até a hidratação
-  // resolver se há WebGL.
-  const temWebGL = useStore((state) => state.webglAvailable);
 
   return (
     <section
@@ -140,50 +129,25 @@ export function Empresas() {
             <div className="relative w-full [container-type:inline-size] md:w-1/2">
               <div className="relative aspect-square overflow-clip rounded-[1.6rem] md:sticky md:top-[calc((100svh-100cqw)*0.5)]">
                 {/*
-                  **Dois caminhos para o mesmo campo, e o motivo é o scroll de
-                  toque.** O `<View>` do drei recorta o canvas fixo pelo
-                  `getBoundingClientRect()` do alvo, lido no `useFrame`. No
-                  estreito o scroll é do compositor (`syncTouch: false`) e o rAF
-                  fica para trás: medido no celular, o quadrado descia até
-                  debaixo do rótulo "Software house" enquanto o dedo arrastava e
-                  só voltava ao lugar quando o scroll parava. Não há como colar
-                  um recorte pintado na main thread num conteúdo que o
-                  compositor move.
-
-                  Abaixo do `md`, então, o campo ganha canvas **próprio dentro do
-                  painel**: aí não há recorte nenhum, e o compositor move os
-                  pixels junto com a página, como faria com uma imagem. O preço
-                  é um segundo contexto WebGL no celular e um campo que
-                  **congela** durante o arrasto rápido (o compositor reexibe o
-                  último frame) — congelar colado é melhor que animar descolado.
-
-                  A `Entregas` não precisa disso: o painel dela é `md:flex`.
+                  Canvas próprio dentro do painel, não recorte de canvas fixo:
+                  ver `CanvasDoCampo`.
                 */}
-                {ehLargo ? (
-                  <View className="size-full">
-                    <CampoDeBlocos opcoes={CAMPO} />
-                  </View>
-                ) : (
-                  temWebGL && (
-                    <>
-                      <CanvasDoCampo>
-                        <CampoDeBlocos opcoes={CAMPO} />
-                      </CanvasDoCampo>
-                      {/*
-                        O véu que o cartão dava de graça. No largo o campo é
-                        visto **através** do `bg-ink/6`, e aqui ele passou a
-                        pintar por cima: medido, o âmbar saía (161,74,8) contra
-                        (167,84,21), e o fundo do campo, preto puro, contra o
-                        #0f0e0d do cartão. Repor a mesma camada por cima devolve
-                        a composição idêntica (161·0,94 + 245·0,06 = 167).
-                      */}
-                      <div
-                        aria-hidden
-                        className="pointer-events-none absolute inset-0 bg-ink/6"
-                      />
-                    </>
-                  )
-                )}
+                <CanvasDoCampo>
+                  <CampoDeBlocos opcoes={CAMPO} />
+                </CanvasDoCampo>
+
+                {/*
+                  O véu que o cartão dava de graça enquanto o campo era pintado
+                  **atrás** dele. Com o canvas aqui dentro, o campo passou a
+                  pintar por cima do `bg-ink/6`: medido, o âmbar saía (161,74,8)
+                  contra (167,84,21), e o fundo do campo, preto puro, contra o
+                  #0f0e0d do cartão. Repor a mesma camada por cima devolve a
+                  composição idêntica (161·0,94 + 245·0,06 = 167).
+                */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 bg-ink/6"
+                />
               </div>
             </div>
 

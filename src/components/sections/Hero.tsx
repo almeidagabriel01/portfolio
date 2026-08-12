@@ -1,6 +1,5 @@
 "use client";
 
-import { View } from "@react-three/drei";
 import {
   AnimatePresence,
   motion,
@@ -20,7 +19,6 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useTranslations } from "@/hooks/useTranslations";
 import { remapear } from "@/lib/motion";
-import { useStore } from "@/store";
 
 /** Intervalo da rotação de frases, e também o tempo que o anel leva a fechar. */
 const INTERVALO = 5000;
@@ -75,14 +73,12 @@ interface Props {
 export function Hero({ rotulo, frases: frasesDaRota }: Props = {}) {
   const t = useTranslations();
   const secao = useRef<HTMLElement>(null);
-  const areaDoCampo = useRef<HTMLElement>(null);
+  const areaDoCampo = useRef<HTMLDivElement>(null);
   const campo = useRef<CampoHandle>(null);
 
   const ehDesktop = useMediaQuery("(min-width: 768px)");
+  const temPonteiro = useMediaQuery("(hover: hover)");
   const reducedMotion = useReducedMotion();
-  // Mesmo portão do `BackgroundCanvas`: `false` no servidor e até a hidratação
-  // resolver se há WebGL.
-  const temWebGL = useStore((state) => state.webglAvailable);
 
   const [alturaDaJanela, setAlturaDaJanela] = useState(0);
   useEffect(() => {
@@ -156,43 +152,23 @@ export function Hero({ rotulo, frases: frasesDaRota }: Props = {}) {
       className="relative z-200 flex h-svh w-full overflow-clip"
     >
       {/*
-        No largo, o `<View>` do drei renderiza este `absolute inset-0` e recorta
-        o render do canvas fixo ao retângulo dele. É o que confina o campo ao
-        hero sem painel opaco por cima das outras seções.
+        O campo, no seu próprio canvas dentro do hero (ver `CanvasDoCampo` para
+        o porquê de não ser um recorte de canvas fixo).
 
-        **No estreito o recorte descola, e aqui ele aparece como faixa acesa.**
-        O `View` lê o retângulo do alvo na main thread; o scroll de toque é do
-        compositor. O campo pintado fica para trás do resto da página, e a
-        passagem para o preto logo abaixo — que é DOM, e portanto acompanha o
-        scroll — deixa de cobrir o rodapé do campo: durante o arrasto surge uma
-        tira de blocos **sem** o esmaecimento, exatamente a cor crua do campo.
-        Mesma causa do painel da `Empresas`; mesma cura (ver `CanvasDoCampo`):
-        canvas próprio dentro do elemento, que o compositor move junto.
-
-        Sem `usarMouse` no estreito: não há ponteiro para deixar rastro, e o
-        rastro custa dois render targets e um render por frame.
+        O rastro só existe onde há ponteiro: sem `hover: hover` não há mouse
+        para deixar rastro, e ele custa dois render targets e um render por
+        frame. É o mesmo critério que a `Entregas` usa para o hover dos cards.
       */}
-      {ehDesktop ? (
-        <View
-          ref={areaDoCampo as React.RefObject<HTMLElement>}
-          className="absolute inset-0"
-        >
+      <div ref={areaDoCampo} className="absolute inset-0">
+        <CanvasDoCampo>
           <CampoDeBlocos
             ref={campo}
-            usarMouse
+            usarMouse={temPonteiro}
             alvoDoPonteiro={areaDoCampo}
             opcoes={{ escala: ESCALA_NO_TOPO }}
           />
-        </View>
-      ) : (
-        temWebGL && (
-          <div className="absolute inset-0">
-            <CanvasDoCampo>
-              <CampoDeBlocos ref={campo} opcoes={{ escala: ESCALA_NO_TOPO }} />
-            </CanvasDoCampo>
-          </div>
-        )
-      )}
+        </CanvasDoCampo>
+      </div>
 
       <motion.div className="absolute inset-0 size-full" style={{ y }}>
         <motion.div

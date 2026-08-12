@@ -8,76 +8,24 @@ declare global {
 }
 
 /**
- * O canvas 2D legado saiu no T21: toda rota passou a ter a mesma arquitetura
- * de fundo, então o PORT-02 vale nas quatro. Os testes de ciclo de vida do
- * canvas (frameloop, aba oculta, contexto perdido) não dependem de rota: vão
- * de uma vez só, em `ROUTE`, para não quadruplicar o tempo da suíte.
+ * Ciclo de vida do canvas: frameloop, aba oculta, contexto perdido. Nada disso
+ * depende de rota, então vai de uma vez só em `ROUTE`, para não quadruplicar o
+ * tempo da suíte. `/projetos` tem exatamente **um** campo (o hero), o que torna
+ * o seam `__campoRenderer` inequívoco e `document.querySelector("canvas")` o
+ * canvas certo. Quantos canvas cada rota monta é assunto de
+ * `canvas-persistence`.
  */
-const ROUTES = ["/", "/projetos", "/projetos/barbalog", "/sobre"];
 const ROUTE = "/projetos";
 
 async function frameCount(page: Page): Promise<number> {
-  return page.evaluate(
-    () => window.__backgroundRenderer?.info.render.frame ?? -1,
-  );
+  return page.evaluate(() => window.__campoRenderer?.info.render.frame ?? -1);
 }
 
 async function waitForRenderer(page: Page) {
-  await page.waitForFunction(() => Boolean(window.__backgroundRenderer));
+  await page.waitForFunction(() => Boolean(window.__campoRenderer));
 }
 
-test.describe("BackgroundCanvas: robustez", () => {
-  // PORT-02: em toda rota, não só na que servia de palco antes do T21.
-  for (const route of ROUTES) {
-    test(`renderiza exatamente 1 canvas no documento em ${route}`, async ({
-      page,
-    }) => {
-      await page.goto(route);
-      await waitForRenderer(page);
-      await expect(page.locator("canvas")).toHaveCount(1);
-    });
-  }
-
-  // PORT-01 + PORT-02: percorrer as quatro rotas client-side não acumula
-  // canvas nem troca o nó: um segundo <Canvas> só apareceria navegando.
-  test("percorrer as quatro rotas mantém um único canvas, sempre o mesmo nó", async ({
-    page,
-  }) => {
-    await page.goto("/");
-    await waitForRenderer(page);
-    const primeiro = await page.evaluateHandle(
-      () => window.__backgroundRenderer!.domElement,
-    );
-
-    const nav = page.getByRole("navigation", { name: "Navegação de rotas" });
-    // Termina em /projetos: é de lá que sai o link para a case page.
-    for (const [link, url] of [
-      ["Sobre", "/sobre"],
-      ["Início", "/"],
-      ["Projetos", "/projetos"],
-    ] as const) {
-      await nav.getByRole("link", { name: link }).click();
-      await page.waitForURL(url);
-      await expect(page.locator("canvas")).toHaveCount(1);
-    }
-
-    // O rótulo "Ver o case" saiu da rota na fase C: quem leva à case page
-    // agora é o título do card de destaque.
-    await page
-      .getByRole("heading", { level: 3, name: "Barbalog" })
-      .getByRole("link", { name: "Barbalog" })
-      .click();
-    await page.waitForURL("/projetos/barbalog");
-    await expect(page.locator("canvas")).toHaveCount(1);
-
-    expect(
-      await page.evaluate(
-        (node) => node === window.__backgroundRenderer?.domElement,
-        primeiro,
-      ),
-    ).toBe(true);
-  });
-
+test.describe("Canvas do campo: robustez", () => {
   // PORT-04
   test("sem WebGL: nenhum canvas, conteúdo intacto e console limpo", async ({
     page,
@@ -220,16 +168,14 @@ test.describe("BackgroundCanvas: robustez", () => {
   });
 
   /**
-   * No estreito nenhum campo pode sair do canvas fixo: o recorte do `<View>` é
-   * calculado na main thread e descola do elemento durante o scroll de toque,
-   * que é do compositor. A prova estrutural é a posição do nó — um canvas
-   * dentro do hero, outro dentro da `Empresas` — e a ausência do canvas fixo,
-   * que aí não teria `<View>` nenhum para hospedar.
+   * O estreito é onde o defeito aparecia (ver `CanvasDoCampo`), e é onde o
+   * painel da `Entregas` **não** deve existir: ele é `hidden md:flex`, e
+   * `display: none` esconderia o canvas sem soltar o contexto WebGL.
    */
   test.describe("no estreito", () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
-    test("hero e Empresas têm canvas próprio, e o canvas fixo não monta", async ({
+    test("a home monta o campo do hero e o da Empresas, e só", async ({
       page,
     }) => {
       await page.goto("/");
@@ -240,30 +186,24 @@ test.describe("BackgroundCanvas: robustez", () => {
         page.locator('section[aria-labelledby="empresas"] canvas'),
       ).toHaveCount(1);
       await expect(page.locator("canvas")).toHaveCount(2);
-      expect(
-        await page.evaluate(() => window.__backgroundRenderer === undefined),
-      ).toBe(true);
     });
 
-    /**
-     * O contraponto do PORT-01, que aqui não vale: no estreito o canvas do hero
-     * é **destruído e recriado** a cada rota. O que não pode acontecer é
-     * acumular — contexto WebGL vazado deixa o hero preto depois de algumas
-     * navegações, e o teto de contextos vivos do Safari de iPhone é baixo.
-     * Cada rota tem exatamente um hero; só a home tem também o painel.
-     */
+    // O mesmo ciclo de `canvas-persistence`, com o menu do estreito e com o
+    // painel da `Entregas` fora da conta.
     test("navegar entre rotas não acumula canvas", async ({ page }) => {
       await page.goto("/");
       await expect(page.locator("canvas")).toHaveCount(2);
 
-      // No estreito as rotas moram no painel do menu, que fecha ao navegar.
       for (const [link, url, quantos] of [
         ["Sobre", "/sobre", 1],
         ["Início", "/", 2],
         ["Projetos", "/projetos", 1],
       ] as const) {
         await page.getByRole("button", { name: "Menu" }).click();
-        await page.locator("#menu-mobile").getByRole("link", { name: link }).click();
+        await page
+          .locator("#menu-mobile")
+          .getByRole("link", { name: link })
+          .click();
         await page.waitForURL(url);
         await expect(page.locator("canvas")).toHaveCount(quantos);
       }
@@ -273,18 +213,8 @@ test.describe("BackgroundCanvas: robustez", () => {
         .getByRole("link", { name: "Barbalog" })
         .click();
       await page.waitForURL("/projetos/barbalog");
-      // A case page não tem hero nem campo nenhum: no largo ela ainda mostra o
-      // canvas fixo, vazio; no estreito não sobra canvas para montar.
       await expect(page.locator("canvas")).toHaveCount(0);
     });
-  });
-
-  // No largo tudo volta ao `<View>`: um segundo canvas aqui seria regressão do
-  // AD-002. O `toHaveCount(1)` global dos testes acima é o outro lado disto.
-  test("no largo nenhuma seção monta canvas próprio", async ({ page }) => {
-    await page.goto("/");
-    await waitForRenderer(page);
-    await expect(page.locator("section canvas")).toHaveCount(0);
   });
 
   // `dpr={[1, 2]}`: em tela 3x o renderer precisa cair para 2, nunca seguir o
@@ -299,7 +229,7 @@ test.describe("BackgroundCanvas: robustez", () => {
         await page.evaluate(() => window.devicePixelRatio),
       ).toBeGreaterThan(2);
       expect(
-        await page.evaluate(() => window.__backgroundRenderer?.getPixelRatio()),
+        await page.evaluate(() => window.__campoRenderer?.getPixelRatio()),
       ).toBe(2);
     });
   });

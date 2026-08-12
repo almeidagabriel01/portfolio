@@ -1,11 +1,11 @@
 "use client";
 
-import { View } from "@react-three/drei";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import { LinkDeRota as Link } from "@/components/ui/LinkDeRota";
 import { useEffect, useRef, useState } from "react";
 import { CampoDeBlocos } from "@/components/canvas/CampoDeBlocos";
+import { CanvasDoCampo } from "@/components/canvas/CanvasDoCampo";
 import { TituloDistribuido } from "@/components/motion/TituloDistribuido";
 import { Botao, SetaDireita } from "@/components/ui/Botao";
 import { Carrossel } from "@/components/ui/Carrossel";
@@ -406,7 +406,16 @@ export function Entregas() {
           (669 × 520), e é o que dá ao bloco a proporção que ele tem.
         */}
         <div className="relative hidden flex-col items-center justify-between p-30 md:flex">
-          <View className="absolute inset-0">
+          {/* Canvas próprio dentro do painel, não recorte de canvas fixo: ver
+              `CanvasDoCampo`.
+
+              Atrás de `ehLargo` e não só do `hidden md:flex` do pai: `display:
+              none` esconde o canvas, mas o contexto WebGL continua criado e o
+              loop continua a desenhar num retângulo de tamanho zero. Este
+              painel não existe abaixo do `md`; o contexto dele também não deve. */}
+          {ehLargo && (
+            <div className="absolute inset-0">
+              <CanvasDoCampo>
             {/*
               **Os dois números são medidos, não escolhidos.**
 
@@ -422,8 +431,10 @@ export function Entregas() {
               `escala`, `escalaDoCampo`, `contraste` ou `limiar` recalibra este
               número: todos dividem o mesmo eixo.
             */}
-            <CampoDeBlocos opcoes={{ escala: 0.16, brilho: 0.467 }} />
-          </View>
+                <CampoDeBlocos opcoes={{ escala: 0.16, brilho: 0.467 }} />
+              </CanvasDoCampo>
+            </div>
+          )}
 
           <LinhaDeRotulo pontas={t.deliveries.panelTop} />
 

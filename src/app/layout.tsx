@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
-import { BackgroundCanvas } from "@/components/canvas/BackgroundCanvas";
 import { SmoothScroll } from "@/components/providers/SmoothScroll";
 import { TransicaoDeRota } from "@/components/providers/TransicaoDeRota";
 import { Header } from "@/components/layout/Header";
@@ -100,7 +99,6 @@ export default function RootLayout({
         </noscript>
       </head>
       <body className="antialiased">
-        <BackgroundCanvas />
         {/*
           A transição de rota mora **aqui**, e não num `template.tsx`.
 
@@ -109,10 +107,6 @@ export default function RootLayout({
           transição, o `resolve` que diz ao browser "pode fotografar a rota
           nova". Remontar no meio destrói esse `resolve` e a view transition
           fica pendurada para sempre.
-
-          Fica **abaixo** do `<BackgroundCanvas />` de propósito: quando o
-          provider suspende o render (caminho de voltar/avançar), o canvas
-          global não pode suspender junto: ele nunca remonta (AD-002).
         */}
         <TransicaoDeRota>
           <SmoothScroll>
