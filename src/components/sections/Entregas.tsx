@@ -1,9 +1,10 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import Image from "next/image";
+import Image, { getImageProps } from "next/image";
 import { LinkDeRota as Link } from "@/components/ui/LinkDeRota";
 import { useEffect, useRef, useState } from "react";
+import { preload } from "react-dom";
 import { CampoDeBlocos } from "@/components/canvas/CampoDeBlocos";
 import { CanvasDoCampo } from "@/components/canvas/CanvasDoCampo";
 import { TituloDistribuido } from "@/components/motion/TituloDistribuido";
@@ -78,7 +79,10 @@ const TRANSICAO_DA_MIDIA = { duration: 0.4, ease: EASE.OUT_SNAPPY } as const;
  * o motivava já tinha acabado. Amarrados na mesma constante, param juntos e a
  * defasagem não volta por descuido.
  */
-const TRANSICAO_DA_ABERTURA = { duration: 0.55, ease: EASE.OUT_SNAPPY } as const;
+const TRANSICAO_DA_ABERTURA = {
+  duration: 0.55,
+  ease: EASE.OUT_SNAPPY,
+} as const;
 
 const FILEIRAS = CELULAS_POR_FILEIRA.length;
 
@@ -90,10 +94,7 @@ const FILEIRAS = CELULAS_POR_FILEIRA.length;
 function lugarDaCelula(indice: number) {
   let fileira = 0;
   let restante = indice;
-  while (
-    fileira < FILEIRAS - 1 &&
-    restante >= CELULAS_POR_FILEIRA[fileira]
-  ) {
+  while (fileira < FILEIRAS - 1 && restante >= CELULAS_POR_FILEIRA[fileira]) {
     restante -= CELULAS_POR_FILEIRA[fileira];
     fileira++;
   }
@@ -207,6 +208,22 @@ export function Entregas() {
    */
   const fimDoAnterior = useRef(0);
 
+  /**
+   * O bloco da mídia está por perto?
+   *
+   * **Um observador no bloco, não um por cartão.** O cartão vive num trilho com
+   * `overflow-x`, e a intersecção é calculada contra o recorte de **todo**
+   * ancestral que rola: o sétimo cartão, a ~1.800px à direita, nunca
+   * "intersecta" a viewport por mais folga de `rootMargin` que se dê — medido,
+   * `9999px` na horizontal não muda um bit. O que se quer saber é outra coisa,
+   * e é do bloco: ele está perto o bastante para o visitante alcançar qualquer
+   * cartão com um deslize?
+   */
+  const [blocoDaMidia, blocoPerto] = useIntersectionObserver<HTMLDivElement>({
+    threshold: 0,
+    rootMargin: "200px",
+  });
+
   const apontar = (slug: string) =>
     setDestaque((atual) =>
       atual?.slug === slug
@@ -240,10 +257,43 @@ export function Entregas() {
    */
   const ehLargo = useMediaQuery("(min-width: 48rem)");
 
+  /**
+   * **A mídia do hover é buscada antes do hover, no largo.**
+   *
+   * A camada só monta quando o ponteiro chega, e aí ela fica **vazia** enquanto
+   * a imagem desce: medido a 1,5 Mbps, ~330ms de camada em opacidade cheia sem
+   * nada pintado nas duas células de captura. Os posters dos vídeos não sofrem
+   * disso porque o HTML do servidor traz a marcação do estreito e o browser já
+   * os baixou; as capturas, não — o cartão do estreito pede a variante de
+   * 384px e a camada do largo pede outra.
+   *
+   * `getImageProps` dá exatamente a URL que o `<Image>` vai pedir (com o mesmo
+   * `sizes`), então o `preload` aquece o cache certo, e não uma variante que
+   * ninguém usa.
+   */
+  useEffect(() => {
+    if (!blocoPerto || !ehLargo) return;
+    for (const project of NA_GRADE) {
+      if (project.video || !project.screenshot) continue;
+      const { props } = getImageProps({
+        src: project.screenshot,
+        alt: "",
+        fill: true,
+        sizes: "(min-width: 48rem) 50vw, 100vw",
+      });
+      preload(props.src, {
+        as: "image",
+        imageSrcSet: props.srcSet,
+        imageSizes: props.sizes,
+      });
+    }
+  }, [blocoPerto, ehLargo]);
+
   const indiceEmDestaque = NA_GRADE.findIndex(
     (project) => project.slug === emDestaque,
   );
-  const destacado = indiceEmDestaque >= 0 ? NA_GRADE[indiceEmDestaque] : undefined;
+  const destacado =
+    indiceEmDestaque >= 0 ? NA_GRADE[indiceEmDestaque] : undefined;
 
   return (
     <section
@@ -274,7 +324,10 @@ export function Entregas() {
         fato (AD-008). Literal e não constante: o Tailwind varre o texto-fonte, e
         classe montada por template literal não chega a existir.
       */}
-      <div className="relative md:w-calc md:grid md:grid-cols-2 md:border md:border-[#57534e]">
+      <div
+        ref={blocoDaMidia}
+        className="relative md:w-calc md:grid md:grid-cols-2 md:border md:border-[#57534e]"
+      >
         <div className="relative">
           {/*
             A mídia: um vídeo do site rolando, montado no hover, cobrindo as
@@ -356,7 +409,9 @@ export function Entregas() {
                         initial={{ scale: 1.08 }}
                         animate={{ scale: 1 }}
                         transition={TRANSICAO_DA_ABERTURA}
-                        style={{ transformOrigin: origemDaCelula(indiceEmDestaque) }}
+                        style={{
+                          transformOrigin: origemDaCelula(indiceEmDestaque),
+                        }}
                         className="size-full object-cover object-top"
                       >
                         {/* WebM primeiro: quem sabe VP9 baixa o menor. */}
@@ -371,14 +426,22 @@ export function Entregas() {
                         initial={{ scale: 1.08 }}
                         animate={{ scale: 1 }}
                         transition={TRANSICAO_DA_ABERTURA}
-                        style={{ transformOrigin: origemDaCelula(indiceEmDestaque) }}
+                        style={{
+                          transformOrigin: origemDaCelula(indiceEmDestaque),
+                        }}
                         className="relative size-full"
                       >
                         <Image
                           src={destacado.screenshot!}
                           alt=""
                           fill
-                          sizes="100vw"
+                          /*
+                            **A camada é metade do bloco, não a viewport.** Com
+                            `100vw` o `next/image` servia a variante de 1920px
+                            (39 kB medidos) para uma caixa de 669: mais bytes e
+                            mais espera para o mesmo pixel.
+                          */
+                          sizes="(min-width: 48rem) 50vw, 100vw"
                           className="object-cover object-top"
                         />
                       </motion.div>
@@ -442,6 +505,7 @@ export function Entregas() {
                 rotuloDoSite={t.caseStudy.visit}
                 emDestaque={emDestaque}
                 temPonteiro={temPonteiro}
+                blocoPerto={blocoPerto}
                 ehLargo={ehLargo}
                 aoEntrar={() => apontar(project.slug)}
                 aoSair={largar}
@@ -552,6 +616,8 @@ interface CelulaProps {
   rotuloDoSite: string;
   emDestaque: string | null;
   temPonteiro: boolean;
+  /** O bloco da mídia está perto da viewport? Ver o observador em `Entregas`. */
+  blocoPerto: boolean;
   /** No largo quem mostra a mídia é a camada única da malha. */
   ehLargo: boolean;
   /** Slide corrente do carrossel. Só ele toca. */
@@ -569,6 +635,7 @@ function Celula({
   rotuloDoSite,
   emDestaque,
   temPonteiro,
+  blocoPerto,
   ehLargo,
   ativo,
   aoEntrar,
@@ -580,11 +647,6 @@ function Celula({
    * isto que impede o vídeo de existir para o browser antes de alguém chegar
    * perto dele. Ver `deveTocar`.
    */
-  const [caixaDaMidia, naTela] = useIntersectionObserver<HTMLDivElement>({
-    threshold: 0,
-    rootMargin: "200px",
-  });
-
   /**
    * **Um decodificador, não sete — e nenhum antes da hora.**
    *
@@ -607,12 +669,11 @@ function Celula({
    * ativo muda enquanto o elemento continua o mesmo. O `load()` é o que faz o
    * elemento reparar nos `<source>` que acabaram de aparecer.
    */
-  const deveTocar = !ehLargo && Boolean(project.video) && ativo && naTela;
+  const deveTocar = !ehLargo && Boolean(project.video) && ativo && blocoPerto;
   useEffect(() => {
     const video = midia.current;
     if (!video) return;
     if (deveTocar) {
-      video.load();
       void video.play().catch(() => {});
     } else {
       video.pause();
@@ -649,10 +710,7 @@ function Celula({
         1.6rem); no largo ela cobre a célula inteira e vira o palco das três
         camadas do hover.
       */}
-      <div
-        ref={caixaDaMidia}
-        className="relative h-345 w-full overflow-clip rounded-[1.6rem] bg-ink/20 md:absolute md:inset-0 md:h-auto md:rounded-none md:bg-transparent"
-      >
+      <div className="relative h-345 w-full overflow-clip rounded-[1.6rem] bg-ink/20 md:absolute md:inset-0 md:h-auto md:rounded-none md:bg-transparent">
         {/* Só no estreito: no largo quem mostra a mídia é a camada única da
             malha, e um screenshot por célula devolveria as sete janelinhas.
             Sem vídeo entra a captura parada: o cartão do estreito é 265 × 345 e
@@ -665,6 +723,22 @@ function Celula({
               alt=""
               fill
               sizes="265px"
+              /**
+               * **`eager` assim que o carrossel se aproxima, e é o que mata a
+               * piscada cinza.**
+               *
+               * O `lazy` do `next/image` decide pela viewport, e num trilho
+               * horizontal o cartão que está seis posições à direita nunca
+               * entra nela: medido, a imagem do último cartão continuava com
+               * `complete: false` mesmo com o carrossel inteiro na tela. Ao
+               * deslizar até ele, o que aparecia era o `bg-ink/20` da caixa —
+               * o cinza — até a imagem chegar.
+               *
+               * Trocar o atributo depois da montagem **dispara** o download
+               * (é o que a especificação manda), então nada é baixado antes de
+               * o visitante chegar perto da seção.
+               */
+              loading={blocoPerto ? "eager" : "lazy"}
               className="object-cover object-top"
             />
             <div aria-hidden className="absolute inset-0 bg-black/15" />
@@ -769,4 +843,3 @@ function Celula({
     </LinkAnimado>
   );
 }
-

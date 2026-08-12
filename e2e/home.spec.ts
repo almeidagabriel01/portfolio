@@ -103,6 +103,49 @@ test.describe("Rota /: hero", () => {
   test.describe("mídia do carrossel", () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
+    /**
+     * **A piscada cinza.** O `lazy` do `next/image` decide pela viewport, e um
+     * trilho horizontal esconde os cartões da direita atrás do próprio
+     * recorte: o `rootMargin` do observer não atravessa isso (medido,
+     * `9999px` na horizontal não muda um bit). O último cartão ficava com a
+     * imagem por carregar e, ao deslizar até ele, aparecia o `bg-ink/20` da
+     * caixa — cinza — por ~370ms a 1,5 Mbps.
+     *
+     * A garantia é: alcançado o bloco, **todo** cartão tem o que pintar.
+     */
+    test("todo cartão tem mídia pintável assim que o bloco é alcançado", async ({
+      page,
+    }) => {
+      await page.goto("/");
+      await page
+        .locator('section[aria-labelledby="entregas"] video')
+        .first()
+        .scrollIntoViewIfNeeded();
+
+      await expect
+        .poll(() =>
+          page.evaluate(() =>
+            [
+              ...document.querySelectorAll(
+                'section[aria-labelledby="entregas"] img',
+              ),
+            ].every((n) => (n as HTMLImageElement).naturalWidth > 0),
+          ),
+        )
+        .toBe(true);
+
+      // Vídeo sem poster também abriria a caixa cinza no primeiro quadro.
+      expect(
+        await page.evaluate(() =>
+          [
+            ...document.querySelectorAll(
+              'section[aria-labelledby="entregas"] video',
+            ),
+          ].every((n) => Boolean((n as HTMLVideoElement).poster)),
+        ),
+      ).toBe(true);
+    });
+
     test("nenhum vídeo carrega antes de o carrossel ser alcançado", async ({
       page,
     }) => {
