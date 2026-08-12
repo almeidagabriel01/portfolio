@@ -1,11 +1,13 @@
 "use client";
 
 import { View } from "@react-three/drei";
-import { useRef } from "react";
 import { CampoDeBlocos } from "@/components/canvas/CampoDeBlocos";
+import { CanvasDoCampo } from "@/components/canvas/CanvasDoCampo";
 import { TituloDistribuido } from "@/components/motion/TituloDistribuido";
 import { Botao, SetaExterna } from "@/components/ui/Botao";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useTranslations } from "@/hooks/useTranslations";
+import { useStore } from "@/store";
 
 /**
  * SEC-02 e SEC-03: as duas empresas com composição societária e o que cada uma
@@ -18,6 +20,13 @@ const COMPANIES = [
   { nome: "SoftCode", href: "https://softcodedev.com.br/" },
   { nome: "ProOps", href: "https://www.proops.com.br/" },
 ];
+
+/**
+ * `escala` e `brilho` são **medidos neste call site**, não herdados (AD-015). O
+ * passo de bloco aqui é ~2,6px num painel de 488 e a cobertura âmbar é 5,73%,
+ * outra ordem de grandeza do painel da `Entregas`, que é retangular.
+ */
+const CAMPO = { escala: 0.625, brilho: 0.4705, raioDaBorda: 0.035 };
 
 /**
  * O molde de *abordagem*, medido em 1440×900 (topo 3650, altura
@@ -45,7 +54,14 @@ const COMPANIES = [
  */
 export function Empresas() {
   const t = useTranslations();
-  const painel = useRef<HTMLElement>(null);
+  /**
+   * `useSyncExternalStore` por baixo: já no primeiro render do cliente o valor
+   * é o certo, então não há um frame com o ramo errado montado.
+   */
+  const ehLargo = useMediaQuery("(min-width: 768px)");
+  // Mesmo portão do `BackgroundCanvas`: `false` no servidor e até a hidratação
+  // resolver se há WebGL.
+  const temWebGL = useStore((state) => state.webglAvailable);
 
   return (
     <section
@@ -122,21 +138,52 @@ export function Empresas() {
               recolhida, e o painel ficaria descentrado enquanto ela está aberta.
             */}
             <div className="relative w-full [container-type:inline-size] md:w-1/2">
-              <div className="aspect-square overflow-clip rounded-[1.6rem] md:sticky md:top-[calc((100svh-100cqw)*0.5)]">
-                <View
-                  ref={painel as React.RefObject<HTMLElement>}
-                  className="size-full"
-                >
-                  {/*
-                    `escala` e `brilho` são **medidos neste call site**, não
-                    herdados (AD-015). O passo de bloco aqui é
-                    ~2,6px num painel de 488 e a cobertura âmbar é 5,73%, outra
-                    ordem de grandeza do painel da `Entregas`, que é retangular.
-                  */}
-                  <CampoDeBlocos
-                    opcoes={{ escala: 0.625, brilho: 0.4705, raioDaBorda: 0.035 }}
-                  />
-                </View>
+              <div className="relative aspect-square overflow-clip rounded-[1.6rem] md:sticky md:top-[calc((100svh-100cqw)*0.5)]">
+                {/*
+                  **Dois caminhos para o mesmo campo, e o motivo é o scroll de
+                  toque.** O `<View>` do drei recorta o canvas fixo pelo
+                  `getBoundingClientRect()` do alvo, lido no `useFrame`. No
+                  estreito o scroll é do compositor (`syncTouch: false`) e o rAF
+                  fica para trás: medido no celular, o quadrado descia até
+                  debaixo do rótulo "Software house" enquanto o dedo arrastava e
+                  só voltava ao lugar quando o scroll parava. Não há como colar
+                  um recorte pintado na main thread num conteúdo que o
+                  compositor move.
+
+                  Abaixo do `md`, então, o campo ganha canvas **próprio dentro do
+                  painel**: aí não há recorte nenhum, e o compositor move os
+                  pixels junto com a página, como faria com uma imagem. O preço
+                  é um segundo contexto WebGL no celular e um campo que
+                  **congela** durante o arrasto rápido (o compositor reexibe o
+                  último frame) — congelar colado é melhor que animar descolado.
+
+                  A `Entregas` não precisa disso: o painel dela é `md:flex`.
+                */}
+                {ehLargo ? (
+                  <View className="size-full">
+                    <CampoDeBlocos opcoes={CAMPO} />
+                  </View>
+                ) : (
+                  temWebGL && (
+                    <>
+                      <CanvasDoCampo>
+                        <CampoDeBlocos opcoes={CAMPO} />
+                      </CanvasDoCampo>
+                      {/*
+                        O véu que o cartão dava de graça. No largo o campo é
+                        visto **através** do `bg-ink/6`, e aqui ele passou a
+                        pintar por cima: medido, o âmbar saía (161,74,8) contra
+                        (167,84,21), e o fundo do campo, preto puro, contra o
+                        #0f0e0d do cartão. Repor a mesma camada por cima devolve
+                        a composição idêntica (161·0,94 + 245·0,06 = 167).
+                      */}
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-0 bg-ink/6"
+                      />
+                    </>
+                  )
+                )}
               </div>
             </div>
 

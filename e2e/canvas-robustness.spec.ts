@@ -219,6 +219,42 @@ test.describe("BackgroundCanvas: robustez", () => {
     expect(errors).toEqual([]);
   });
 
+  /**
+   * O painel da `Empresas` no estreito **não** pode sair do canvas fixo: o
+   * recorte do `<View>` é calculado na main thread e descola do elemento
+   * durante o scroll de toque, que é do compositor. A prova estrutural é a
+   * posição do nó: canvas próprio dentro da seção, e não só o fixo lá em cima.
+   */
+  test.describe("no estreito", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("o campo da Empresas tem canvas próprio dentro da seção", async ({
+      page,
+    }) => {
+      await page.goto("/");
+      await waitForRenderer(page);
+      const canvasDoPainel = page.locator(
+        'section[aria-labelledby="empresas"] canvas',
+      );
+      await expect(canvasDoPainel).toHaveCount(1);
+      expect(
+        await canvasDoPainel.evaluate(
+          (node) => node === window.__backgroundRenderer?.domElement,
+        ),
+      ).toBe(false);
+    });
+  });
+
+  // No largo o painel volta ao `<View>`: um segundo canvas aqui seria regressão
+  // do AD-002.
+  test("no largo a Empresas não monta canvas próprio", async ({ page }) => {
+    await page.goto("/");
+    await waitForRenderer(page);
+    await expect(
+      page.locator('section[aria-labelledby="empresas"] canvas'),
+    ).toHaveCount(0);
+  });
+
   // `dpr={[1, 2]}`: em tela 3x o renderer precisa cair para 2, nunca seguir o
   // devicePixelRatio do dispositivo.
   test.describe("em tela de alta densidade", () => {
