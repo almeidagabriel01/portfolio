@@ -47,5 +47,5 @@ next-env.d.ts
 # Notas de trabalho: ficam no disco, não no repositório
 /.specs/
 /.claude/
-/scripts/medir.mjs
+/scripts/
 /.medicoes/
