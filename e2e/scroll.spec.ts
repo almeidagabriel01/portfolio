@@ -145,6 +145,38 @@ test.describe("SmoothScroll: Lenis", () => {
     ).toBe("auto");
   });
 
+  /**
+   * **A contrapartida do PORT-07: recarregar não pode roubar o scroll.**
+   *
+   * O efeito que devolve o topo rodava também quando o Lenis aparecia, e no
+   * celular ele aparece tarde. O visitante recarrega, vê a hero, rola um pouco
+   * enquanto a barra de progresso ainda anda — e a hidratação joga fora o
+   * scroll dele. `commit` em vez de `load` para agir na mesma janela, e a CPU
+   * a 1/6 alarga essa janela o bastante para o teste ser estável.
+   */
+  test("rolar antes da hidratação não é desfeito quando o Lenis monta", async ({
+    page,
+  }) => {
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate: 6 });
+
+    await page.goto(ROUTE, { waitUntil: "commit" });
+    await page.waitForTimeout(400);
+    // Rolar e ler **na mesma chamada**: o piso precisa ser medido antes de
+    // qualquer ida e volta do protocolo, ou o próprio defeito que este teste
+    // investiga o derruba primeiro e a falha aparece no lugar errado.
+    const depoisDeRolar = await page.evaluate(() => {
+      window.scrollTo(0, 250);
+      return window.scrollY;
+    });
+    expect(depoisDeRolar).toBeGreaterThan(200);
+
+    await page.waitForFunction(() => Boolean(window.__lenis));
+    await page.waitForTimeout(1200);
+
+    expect(await page.evaluate(() => Math.round(window.scrollY))).toBe(250);
+  });
+
   // PORT-07
   test("trocar de rota devolve o scroll ao topo", async ({ page }) => {
     await page.goto(ROUTE);

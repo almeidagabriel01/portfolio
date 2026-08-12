@@ -4,7 +4,7 @@ import type Lenis from "lenis";
 import { ReactLenis, useLenis } from "lenis/react";
 import { MotionConfig } from "motion/react";
 import { usePathname } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useStore } from "@/store";
 
@@ -136,10 +136,31 @@ function ScrollBridge() {
     return () => document.removeEventListener("click", aoClicar);
   }, [lenis]);
 
-  // PORT-07: o Lenis é o dono do scroll virtual, então a restauração de
-  // posição do Next não o alcança: o topo precisa ser pedido.
+  /**
+   * PORT-07: o Lenis é o dono do scroll virtual, então a restauração de posição
+   * do Next não o alcança e o topo precisa ser pedido **na troca de rota**.
+   *
+   * **Na primeira montagem, não.** O efeito rodava também quando o Lenis
+   * aparecia, e no celular ele aparece tarde: o visitante recarrega, vê a hero,
+   * rola um pouco enquanto a barra de progresso ainda anda, a hidratação
+   * termina e o scroll dele é jogado fora. Medido com CPU a 1/6: rolar para 250
+   * antes da hidratação virava 0 assim que o `__lenis` existia.
+   *
+   * Quem decide a posição inicial é o browser (recarregar restaura onde você
+   * estava; abrir com `#âncora` cai na âncora), e o Lenis lê `scrollY` no
+   * construtor, então ele já nasce alinhado com o que estiver na tela.
+   */
+  const rotaAplicada = useRef<string | null>(null);
   useEffect(() => {
-    lenis?.scrollTo(0, { immediate: true });
+    if (!lenis) return;
+    // A primeira volta com Lenis vivo só registra onde estamos.
+    if (rotaAplicada.current === null) {
+      rotaAplicada.current = pathname;
+      return;
+    }
+    if (rotaAplicada.current === pathname) return;
+    rotaAplicada.current = pathname;
+    lenis.scrollTo(0, { immediate: true });
   }, [pathname, lenis]);
 
   return null;

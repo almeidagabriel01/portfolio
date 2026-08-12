@@ -277,15 +277,15 @@ body {
 /**
  * O `.shell` não pinta mais fundo nenhum.
  *
- * Antes ele era um painel opaco em `z-10` que escondia o canvas em toda parte
- * menos na primeira tela, com uma exceção por `:has(.hero-bleed)`. Isso deixou
- * de ser necessário quando o campo passou a ser desenhado por um `<View>` do
- * drei: o `View` recorta o render do canvas ao retângulo do elemento que segue,
- * então fora do hero o canvas fica **transparente** e o preto do `<body>` é o
- * que aparece. Menos CSS, e funciona igual sem JS.
+ * Antes ele era um painel opaco em `z-10` que escondia o canvas global em toda
+ * parte menos na primeira tela, com uma exceção por `:has(.hero-bleed)`. Isso
+ * deixou de ser necessário quando cada campo ganhou o **próprio** canvas dentro
+ * da seção (AD-047): não há mais canvas cobrindo a página para esconder, e fora
+ * das seções com campo o preto do `<body>` é o que aparece. Menos CSS, e
+ * funciona igual sem JS.
  *
- * Ordem de empilhamento, a mesma: canvas em `z-100`, conteúdo em
- * `z-200`, header em `z-930`.
+ * Ordem de empilhamento: conteúdo em `z-200`, header em `z-930`. O canvas de
+ * cada campo empilha dentro da própria seção, antes do conteúdo dela.
  */
 
 /* Foco visível global. O anel padrão do Chrome é escuro e some sobre o preto:

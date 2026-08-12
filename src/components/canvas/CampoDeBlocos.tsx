@@ -1,6 +1,5 @@
 "use client";
 
-import { useFBO } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
   forwardRef,
@@ -94,6 +93,34 @@ declare global {
   }
 }
 
+/**
+ * Um render target do tamanho do rastro, criado uma vez e descartado no
+ * desmonte.
+ *
+ * **Isto era `useFBO` do drei, e a troca é de peso, não de estilo.** O `useFBO`
+ * é a única coisa que o projeto ainda importava de `@react-three/drei`, e o
+ * pacote não se deixa tree-shakear: o chunk do campo carregava a biblioteca
+ * inteira por causa de um hook de dez linhas. Estas são as dez linhas.
+ */
+function useAlvoDeRender(
+  tamanho: number,
+  opcoes: THREE.RenderTargetOptions,
+): THREE.WebGLRenderTarget {
+  /**
+   * Só na montagem, e as deps ficam de fora de propósito: `opcoes` é um literal
+   * do call site, recriado a cada render com o mesmo conteúdo, e incluí-lo
+   * criaria um render target novo por render — dois contextos de textura
+   * vazando por frame. O tamanho é constante.
+   */
+  const alvo = useMemo(
+    () => new THREE.WebGLRenderTarget(tamanho, tamanho, opcoes),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+  useEffect(() => () => alvo.dispose(), [alvo]);
+  return alvo;
+}
+
 /** Resolução do rastro. 256² é o suficiente: ele é borrado por natureza. */
 const RESOLUCAO_DO_FLUXO = 256;
 /** Quanto do rastro sobrevive a cada frame. */
@@ -107,7 +134,7 @@ interface Props {
   opcoes?: OpcoesDoCampo;
   /** Liga o rastro do mouse. Custa dois render targets e um render por frame. */
   usarMouse?: boolean;
-  /** Elemento que define o retângulo do efeito, o mesmo que o `<View>` segue. */
+  /** Elemento que define o retângulo do efeito, para mapear o ponteiro. */
   alvoDoPonteiro?: React.RefObject<HTMLElement | null>;
 }
 
@@ -136,14 +163,14 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
     // ── Rastro do mouse ────────────────────────────────────────────────────
     // Dois alvos em ping-pong. `HalfFloatType` porque a velocidade é assinada
     // e satura feio em 8 bits.
-    const alvoA = useFBO(RESOLUCAO_DO_FLUXO, RESOLUCAO_DO_FLUXO, {
+    const alvoA = useAlvoDeRender(RESOLUCAO_DO_FLUXO, {
       type: THREE.HalfFloatType,
       format: THREE.RGBAFormat,
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
       depthBuffer: false,
     });
-    const alvoB = useFBO(RESOLUCAO_DO_FLUXO, RESOLUCAO_DO_FLUXO, {
+    const alvoB = useAlvoDeRender(RESOLUCAO_DO_FLUXO, {
       type: THREE.HalfFloatType,
       format: THREE.RGBAFormat,
       minFilter: THREE.LinearFilter,
@@ -325,8 +352,8 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
       fluxo.material.uniforms.uMouse.value.copy(mouse.current);
       fluxo.material.uniforms.uVelocidade.value.copy(velocidade.current);
 
-      // Salva e restaura: o `<View>` do drei também mexe nesses dois, e deixar
-      // o renderer apontando para o FBO deixa a tela preta.
+      // Salva e restaura: deixar o renderer apontando para o render target do
+      // rastro deixa a tela preta.
       const alvoAnterior = gl.getRenderTarget();
       const autoClearAnterior = gl.autoClear;
       gl.setRenderTarget(escrita);

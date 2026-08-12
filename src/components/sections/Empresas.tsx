@@ -83,13 +83,13 @@ export function Empresas() {
         `md` a seção não tem calha (`md:px-50`), então o cartão encosta nas
         bordas e só as quinas arredondam.
 
-        **`ink/6` e não `bg-surface`, e o motivo é o canvas.** O `--color-surface`
-        (#0d0c0b) é opaco, e o `<Canvas>` global mora em `z-100`, **atrás** do
-        conteúdo em `z-200`: o `View` do drei só aparece porque o que está por
-        cima dele é transparente. Com o cartão opaco o painel saía **preto**, sem
-        erro nenhum: a caixa media 487,5 certinho, o `View` montava, e não havia
-        um pixel âmbar. Sobre preto, `#f5e9df` a 6% resolve em #0f0e0d, a mesma
-        cor, agora deixando o campo passar.
+        **`ink/6` e não `bg-surface`, e o motivo continua sendo o campo.** O
+        `--color-surface` (#0d0c0b) é opaco. Enquanto o campo vinha de um canvas
+        atrás do conteúdo, o cartão opaco apagava o painel inteiro sem erro
+        nenhum. Hoje o canvas mora dentro do painel (AD-047) e o cartão já não
+        pode apagá-lo, mas a cor fica: `#f5e9df` a 6% sobre preto resolve em
+        #0f0e0d, a mesma cor, e é ela que o véu por cima do canvas repõe para a
+        composição do âmbar não mudar.
       */}
       <div className="relative rounded-[2.4rem] bg-ink/6 px-33 py-100 md:px-110 md:py-150">
         <div className="flex flex-col gap-50 md:gap-100">

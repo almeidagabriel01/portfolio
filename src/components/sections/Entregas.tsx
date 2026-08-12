@@ -415,22 +415,23 @@ export function Entregas() {
               painel não existe abaixo do `md`; o contexto dele também não deve. */}
           {ehLargo && (
             <div className="absolute inset-0">
+              {/*
+                **Os dois números são medidos, não escolhidos.**
+
+                `escala`: contei as corridas de pixel âmbar no retângulo do
+                painel: o passo do bloco é 5px, e invertido em
+                `passo = 0,7773 / escala` dá 0,1555. É o default do
+                `CAMPO_PADRAO`, e confirma que o `0.08` da Empresas está com o
+                dobro do tamanho.
+
+                `brilho`: o default (`0.478`) foi calibrado na escala do hero
+                (`0.41`) e aqui dá 8,63% de cobertura. A cobertura que o painel
+                pede é **4,70%**, e a curva é íngreme: `0.462` dá 2,93%,
+                `0.472` dá 6,37%. `0.467` dá 4,70% em cheio. Quem mexer em
+                `escala`, `escalaDoCampo`, `contraste` ou `limiar` recalibra
+                este número: todos dividem o mesmo eixo.
+              */}
               <CanvasDoCampo>
-            {/*
-              **Os dois números são medidos, não escolhidos.**
-
-              `escala`: contei as corridas de pixel âmbar no retângulo do painel
-             : o passo do bloco é 5px, e invertido em
-              `passo = 0,7773 / escala` dá 0,1555. É o default do `CAMPO_PADRAO`,
-              e confirma que o `0.08` da Empresas está com o dobro do tamanho.
-
-              `brilho`: o default (`0.478`) foi calibrado na escala do hero
-              (`0.41`) e aqui dá 8,63% de cobertura. A cobertura que o painel
-              pede é **4,70%**, e a curva é íngreme: `0.462` dá 2,93%,
-              `0.472` dá 6,37%. `0.467` dá 4,70% em cheio. Quem mexer em
-              `escala`, `escalaDoCampo`, `contraste` ou `limiar` recalibra este
-              número: todos dividem o mesmo eixo.
-            */}
                 <CampoDeBlocos opcoes={{ escala: 0.16, brilho: 0.467 }} />
               </CanvasDoCampo>
             </div>
