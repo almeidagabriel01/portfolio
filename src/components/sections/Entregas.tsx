@@ -2,6 +2,7 @@
 
 import { View } from "@react-three/drei";
 import { AnimatePresence, motion } from "motion/react";
+import Image from "next/image";
 import { LinkDeRota as Link } from "@/components/ui/LinkDeRota";
 import { useEffect, useRef, useState } from "react";
 import { CampoDeBlocos } from "@/components/canvas/CampoDeBlocos";
@@ -252,7 +253,7 @@ export function Entregas() {
                 `<video>` só, trocando de `src`, salta.
               */}
               <AnimatePresence>
-                {destacado?.video && (
+                {destacado && (destacado.video || destacado.screenshot) && (
                   <motion.div
                     key={destacado.slug}
                     /*
@@ -303,22 +304,43 @@ export function Entregas() {
                       a janela abre e o quadro chega no mesmo instante, sem
                       sobra deslizando depois que não há mais o que abrir.
                     */}
-                    <motion.video
-                      poster={destacado.poster}
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                      initial={{ scale: 1.08 }}
-                      animate={{ scale: 1 }}
-                      transition={TRANSICAO_DA_ABERTURA}
-                      style={{ transformOrigin: origemDaCelula(indiceEmDestaque) }}
-                      className="size-full object-cover object-top"
-                    >
-                      {/* WebM primeiro: quem sabe VP9 baixa o menor. */}
-                      <source src={destacado.video} type="video/webm" />
-                      <source src={destacado.videoMp4} type="video/mp4" />
-                    </motion.video>
+                    {destacado.video ? (
+                      <motion.video
+                        poster={destacado.poster}
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        initial={{ scale: 1.08 }}
+                        animate={{ scale: 1 }}
+                        transition={TRANSICAO_DA_ABERTURA}
+                        style={{ transformOrigin: origemDaCelula(indiceEmDestaque) }}
+                        className="size-full object-cover object-top"
+                      >
+                        {/* WebM primeiro: quem sabe VP9 baixa o menor. */}
+                        <source src={destacado.video} type="video/webm" />
+                        <source src={destacado.videoMp4} type="video/mp4" />
+                      </motion.video>
+                    ) : (
+                      /* Sem gravação, a captura parada. Mesmo empurrão e mesma
+                         origem: o que muda é só a mídia dentro do recorte, e a
+                         célula continua abrindo igual às outras cinco. */
+                      <motion.div
+                        initial={{ scale: 1.08 }}
+                        animate={{ scale: 1 }}
+                        transition={TRANSICAO_DA_ABERTURA}
+                        style={{ transformOrigin: origemDaCelula(indiceEmDestaque) }}
+                        className="relative size-full"
+                      >
+                        <Image
+                          src={destacado.screenshot!}
+                          alt=""
+                          fill
+                          sizes="100vw"
+                          className="object-cover object-top"
+                        />
+                      </motion.div>
+                    )}
                     {/*
                       Véu fixo sobre a mídia, e o número é medido, não gostado.
 
@@ -541,7 +563,22 @@ function Celula({
       */}
       <div className="relative h-345 w-full overflow-clip rounded-[1.6rem] bg-ink/20 md:absolute md:inset-0 md:h-auto md:rounded-none md:bg-transparent">
         {/* Só no estreito: no largo quem mostra a mídia é a camada única da
-            malha, e um screenshot por célula devolveria as seis janelinhas. */}
+            malha, e um screenshot por célula devolveria as seis janelinhas.
+            Sem vídeo entra a captura parada: o cartão do estreito é 265 × 345 e
+            uma caixa dessas sem mídia lê como imagem que não carregou, não como
+            escolha. */}
+        {!ehLargo && !project.video && project.screenshot && (
+          <>
+            <Image
+              src={project.screenshot}
+              alt=""
+              fill
+              sizes="265px"
+              className="object-cover object-top"
+            />
+            <div aria-hidden className="absolute inset-0 bg-black/15" />
+          </>
+        )}
         {!ehLargo && project.video && (
           <>
             <video

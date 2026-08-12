@@ -213,6 +213,7 @@ export const portfolioProjects: Project[] = [
   },
   {
     slug: "softcode",
+    screenshot: "/projetos/softcode.png",
     nome: "SoftCode",
     link: "https://softcodedev.com.br",
     grupo: "produto",
