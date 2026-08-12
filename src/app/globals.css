@@ -419,3 +419,60 @@ button {
     height: round(up, 100%, 1px) !important;
   }
 }
+
+/**
+ * A entrada da headline do hero, **em CSS e não só em JS**.
+ *
+ * Por que existe: a headline é o elemento de LCP da home, e ela é servida com
+ * `opacity:0` (é o `initial` do motion). Isso amarra o LCP à hidratação. Medido
+ * a 4x de CPU e 4G lenta: `DOMContentLoaded` aos 1066ms e o `<h1>` só visível
+ * aos 3528ms — a animação de entrada só arranca depois de ~1,6 MB de JS
+ * executar, e o LCP com ela. Declarada aqui, a mesma entrada arranca na
+ * **primeira pintura**, sem esperar por script nenhum.
+ *
+ * **Os valores são os do `PalavrasQueEntram`, não uma aproximação**: 2s por
+ * palavra, 0,5s no título, `EASE.OUT_EXPO` que é `[0.19, 1, 0.22, 1]` e portanto
+ * um `cubic-bezier` exato, e o atraso por palavra vem inline (0,3s × índice).
+ *
+ * **Sem `forwards` de propósito.** O estado final destes keyframes é o estado
+ * natural do elemento, que é também o que o motion escreve inline quando
+ * hidrata (`initial={false}`). Enquanto a animação corre ela ganha do estilo
+ * inline, porque animação vence a cascata; quando acaba, cai para o inline com
+ * os mesmos valores. A passagem é invisível por construção, não por sorte.
+ */
+@keyframes entrada-do-titulo {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes entrada-da-palavra {
+  from {
+    opacity: 0;
+    transform: scale(1.3);
+    filter: blur(30px);
+  }
+}
+
+.entrada-do-titulo {
+  animation: entrada-do-titulo 0.5s cubic-bezier(0.19, 1, 0.22, 1) backwards;
+}
+
+.entrada-da-palavra {
+  animation: entrada-da-palavra 2s cubic-bezier(0.19, 1, 0.22, 1) backwards;
+}
+
+/**
+ * Sob movimento reduzido o `MotionConfig reducedMotion="user"` deixa o
+ * **transform de fora** e continua a animar opacidade e filtro — medido no
+ * navegador, `transform` fica em `none` e as curvas de opacidade e blur são as
+ * mesmas. Estes keyframes replicam isso, e não uma suposição.
+ */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes entrada-da-palavra {
+    from {
+      opacity: 0;
+      filter: blur(30px);
+    }
+  }
+}

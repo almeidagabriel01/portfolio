@@ -1,7 +1,6 @@
 "use client";
 
-import { CampoDeBlocos } from "@/components/canvas/CampoDeBlocos";
-import { CanvasDoCampo } from "@/components/canvas/CanvasDoCampo";
+import { Campo } from "@/components/canvas/Campo";
 import { TituloDistribuido } from "@/components/motion/TituloDistribuido";
 import { Botao, SetaExterna } from "@/components/ui/Botao";
 import { useTranslations } from "@/hooks/useTranslations";
@@ -132,9 +131,7 @@ export function Empresas() {
                   Canvas próprio dentro do painel, não recorte de canvas fixo:
                   ver `CanvasDoCampo`.
                 */}
-                <CanvasDoCampo>
-                  <CampoDeBlocos opcoes={CAMPO} />
-                </CanvasDoCampo>
+                <Campo opcoes={CAMPO} />
 
                 {/*
                   O véu que o cartão dava de graça enquanto o campo era pintado

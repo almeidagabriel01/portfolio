@@ -1,18 +1,14 @@
 "use client";
 
 import {
-  AnimatePresence,
   motion,
   useMotionValueEvent,
   useScroll,
   useTransform,
 } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import {
-  CampoDeBlocos,
-  type CampoHandle,
-} from "@/components/canvas/CampoDeBlocos";
-import { CanvasDoCampo } from "@/components/canvas/CanvasDoCampo";
+import { Campo } from "@/components/canvas/Campo";
+import type { CampoHandle } from "@/components/canvas/CampoDeBlocos";
 import { IndicadorDeScroll } from "@/components/motion/IndicadorDeScroll";
 import { PalavrasQueEntram } from "@/components/motion/PalavrasQueEntram";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -32,6 +28,30 @@ const INTERVALO = 5000;
  */
 const ESCALA_NO_TOPO = 0.41;
 const ESCALA_NO_FIM = 1;
+
+/**
+ * Segundos que o campo leva a emergir do preto, ao entrar.
+ *
+ * O hero abre **preto**, a headline entra por cima dele, e só então o campo
+ * aparece — ele não estala no lugar. Antes isto acontecia por acidente: a
+ * headline também era invisível até hidratar, então as duas coisas chegavam
+ * juntas. Com a headline a pintar já na primeira pintura, o campo passou a
+ * surgir sozinho e de repente, e a abertura perdia o gesto.
+ *
+ * Quem anima é o `brilho` do campo, não a opacidade da camada: os blocos vão
+ * cruzando o limiar, então em todo quadro o efeito de 1 bit continua exato e a
+ * composição com o texto por cima nunca muda. Ver `revelacao` em
+ * `CampoDeBlocos`.
+ *
+ * **2,4s saiu de medição, não de gosto.** A cobertura âmbar de uma faixa da
+ * primeira tela foi amostrada quadro a quadro contra o alvo de desenho, e é o
+ * valor que faz as duas rampas coincidirem: 25% da cobertura final aos 121ms
+ * (alvo 26%), 62% aos 369ms (63%), 93% aos 755ms (91%), 99% aos 1022ms (98%).
+ * Com 1,4s a rampa chegava a 90% em 430ms, cedo demais; com 2,6s arrancava
+ * lenta. Quem mexer em `brilho`, `limiar` ou `contraste` muda o mapeamento de
+ * uniform para cobertura e precisa reamostrar isto.
+ */
+const REVELACAO_DO_CAMPO = 2.4;
 
 /**
  * O hero.
@@ -162,14 +182,12 @@ export function Hero({ rotulo, frases: frasesDaRota }: Props = {}) {
         dos cards.
       */}
       <div ref={areaDoCampo} className="absolute inset-0">
-        <CanvasDoCampo>
-          <CampoDeBlocos
-            ref={campo}
-            usarMouse={temPonteiro}
-            alvoDoPonteiro={areaDoCampo}
-            opcoes={{ escala: ESCALA_NO_TOPO }}
-          />
-        </CanvasDoCampo>
+        <Campo
+          refDoCampo={campo}
+          usarMouse={temPonteiro}
+          alvoDoPonteiro={areaDoCampo}
+          opcoes={{ escala: ESCALA_NO_TOPO, revelacao: REVELACAO_DO_CAMPO }}
+        />
       </div>
 
       <motion.div className="absolute inset-0 size-full" style={{ y }}>
@@ -187,17 +205,29 @@ export function Hero({ rotulo, frases: frasesDaRota }: Props = {}) {
               </div>
             ) : null}
 
+            {/*
+              **Sem `key` e sem `AnimatePresence`, e não é simplificação.**
+
+              O `<AnimatePresence mode="wait">` com `key={indice}` matava o
+              `<h1>` a cada frase e montava outro. O Chrome regista um candidato
+              a LCP por elemento, na primeira pintura dele: elemento novo a cada
+              5s era candidato novo a cada 5s, e como a entrada aplica
+              `blur(30px)` — que infla a área medida ~10x — cada volta registava
+              um candidato maior que o anterior. Medido com estrangulamento
+              real, o LCP acabava em 9,0s.
+
+              O `PalavrasQueEntram` faz a mesma sequência por dentro, sobre os
+              mesmos elementos: título a `opacity: 0`, troca do texto, título de
+              volta e palavras a entrar escalonadas. Ver o comentário lá.
+            */}
             <div className="w-full flex-center">
-              <AnimatePresence mode="wait">
-                <PalavrasQueEntram
-                  key={indice}
-                  id="hero"
-                  classeDeDestaque="text-accent-soft"
-                  className="type-m-54 md:type-m-96 text-center text-ink"
-                >
-                  {frases[indice]}
-                </PalavrasQueEntram>
-              </AnimatePresence>
+              <PalavrasQueEntram
+                id="hero"
+                classeDeDestaque="text-accent-soft"
+                className="type-m-54 md:type-m-96 text-center text-ink"
+              >
+                {frases[indice]}
+              </PalavrasQueEntram>
             </div>
 
             {/*

@@ -1,6 +1,7 @@
 "use client";
 
 import { useFrame, useThree } from "@react-three/fiber";
+import { cubicBezier } from "motion/react";
 import {
   forwardRef,
   useCallback,
@@ -10,6 +11,8 @@ import {
   useRef,
 } from "react";
 import * as THREE from "three";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { EASE } from "@/lib/motion";
 import {
   campoFragmentGLSL,
   flowmapFragmentGLSL,
@@ -30,6 +33,16 @@ export interface OpcoesDoCampo {
   distorcao?: number;
   cor?: string;
   fundo?: string;
+  /**
+   * Segundos que o campo leva a emergir do preto ao montar. `0` desliga, e é o
+   * default: quem não pede nada continua a acender de uma vez.
+   *
+   * O que anima é o `brilho`, não a opacidade do canvas — o campo **nasce
+   * preto** e os blocos vão cruzando o limiar até a cobertura calibrada. É por
+   * isso que o texto por cima nunca é afetado: a camada não esmaece, o
+   * conteúdo dela é que aparece.
+   */
+  revelacao?: number;
 }
 
 /**
@@ -64,6 +77,7 @@ export const CAMPO_PADRAO: Required<OpcoesDoCampo> = {
   distorcao: 1,
   cor: "#d09332",
   fundo: "#000000",
+  revelacao: 0,
 };
 
 export interface CampoHandle {
@@ -270,6 +284,24 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
       if (uniform) uniform.value = valor;
     }, []);
 
+    /**
+     * A revelação do campo, e por que ela é do `brilho` e não da opacidade.
+     *
+     * O campo entra **emergindo do preto**: os blocos vão cruzando o limiar até
+     * a cobertura calibrada, em vez de a camada inteira esmaecer. Esmaecer o
+     * canvas misturaria o campo com o que está por baixo e mudaria a
+     * composição; deslizar o `brilho` mantém o efeito de 1 bit exato em todo
+     * quadro — só há menos blocos acesos.
+     *
+     * Sob movimento reduzido não há revelação nenhuma, e não é só preferência:
+     * ali o `frameloop` é `demand`, um único quadro é desenhado, e uma rampa
+     * dependente de quadros congelaria o campo preto para sempre.
+     */
+    const reducedMotion = useReducedMotion();
+    const revelando = config.revelacao > 0 && !reducedMotion;
+    const revelado = useRef(!revelando);
+    const suavizar = useMemo(() => cubicBezier(...EASE.OUT_EXPO), []);
+
     const uniforms = useMemo(
       () => ({
         uFlowmap: { value: null as THREE.Texture | null },
@@ -279,7 +311,9 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
         uAspecto: { value: 1 },
         uEscala: { value: config.escala },
         uEscalaDoCampo: { value: config.escalaDoCampo },
-        uBrilho: { value: config.brilho },
+        // Nasce preto quando há revelação: o `useFrame` sobe daqui até o valor
+        // calibrado. Sem revelação, entra já no valor final, como sempre.
+        uBrilho: { value: revelando ? 0 : config.brilho },
         uContraste: { value: config.contraste },
         uLimiar: { value: config.limiar },
         uRaioDaBorda: { value: config.raioDaBorda },
@@ -339,6 +373,14 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
       ultimoTique.current = agora;
       if (delta > 0 && delta < 0.5) tempo.current += delta;
       alvo.uniforms.uTempo.value = tempo.current;
+
+      // `tempo.current` só corre quando há quadros, então um campo que entra
+      // na tela mais tarde revela-se quando aparece, e não a meio.
+      if (!revelado.current) {
+        const progresso = Math.min(1, tempo.current / config.revelacao);
+        alvo.uniforms.uBrilho.value = config.brilho * suavizar(progresso);
+        if (progresso >= 1) revelado.current = true;
+      }
 
       const aspecto = size.height > 0 ? size.width / size.height : 1;
       alvo.uniforms.uResolucao.value.set(size.width, size.height);

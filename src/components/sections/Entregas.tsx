@@ -3,8 +3,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { LinkDeRota as Link } from "@/components/ui/LinkDeRota";
 import { useEffect, useRef, useState } from "react";
-import { CampoDeBlocos } from "@/components/canvas/CampoDeBlocos";
-import { CanvasDoCampo } from "@/components/canvas/CanvasDoCampo";
+import { Campo } from "@/components/canvas/Campo";
 import { TituloDistribuido } from "@/components/motion/TituloDistribuido";
 import { Botao, SetaDireita } from "@/components/ui/Botao";
 import { Carrossel } from "@/components/ui/Carrossel";
@@ -502,9 +501,7 @@ export function Entregas() {
                 `escala`, `escalaDoCampo`, `contraste` ou `limiar` recalibra
                 este número: todos dividem o mesmo eixo.
               */}
-              <CanvasDoCampo>
-                <CampoDeBlocos opcoes={{ escala: 0.16, brilho: 0.467 }} />
-              </CanvasDoCampo>
+              <Campo opcoes={{ escala: 0.16, brilho: 0.467 }} />
             </div>
           )}
 

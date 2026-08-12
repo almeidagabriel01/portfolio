@@ -94,8 +94,21 @@ export default function RootLayout({
           invisíveis para sempre. Marcação explícita porque aqui não há
           `initial` do motion para se anunciar sozinho no `style`.
         */}
+        {/*
+          A terceira parte da regra cobre a entrada da headline, que passou a
+          ser declarada em CSS (`entrada-da-palavra`/`entrada-do-titulo`, ver
+          `globals.css`) para não ficar à espera da hidratação.
+
+          Uma animação CSS **roda sem script**, ao contrário do `initial` do
+          motion, então sem JS a headline entraria normalmente em vez de ficar
+          invisível. Só que sem script também não há rotação de frases, e o que
+          este `<noscript>` promete é conteúdo **legível de imediato** — é a
+          garantia que o `home.spec` cobra com o JS desligado. Desligar a
+          animação repõe exatamente o comportamento de hoje: texto no lugar,
+          sem entrada.
+        */}
         <noscript>
-          <style>{`main [style*="opacity:0;"],main [style$="opacity:0"],main [data-recuado]{opacity:1!important;filter:none!important;transform:none!important}`}</style>
+          <style>{`main [style*="opacity:0;"],main [style$="opacity:0"],main [data-recuado]{opacity:1!important;filter:none!important;transform:none!important}main .entrada-da-palavra,main .entrada-do-titulo{animation:none!important}`}</style>
         </noscript>
       </head>
       <body className="antialiased">
