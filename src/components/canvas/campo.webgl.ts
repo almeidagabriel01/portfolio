@@ -472,6 +472,28 @@ export function criarCampo(
       gl.bindVertexArray(vao);
       gl.activeTexture(gl.TEXTURE0);
 
+      /**
+       * **O alvo é redimensionado antes de qualquer bind de leitura.**
+       *
+       * `redimensionarAlvo` liga a textura do alvo à unidade 0 para lhe trocar
+       * o tamanho. Feito depois de ligar o rastro, era essa textura que ficava
+       * na unidade quando o passe do campo desenhava **para dentro dela**:
+       * feedback loop, `GL_INVALID_OPERATION`, e o quadro não sai. Acontecia em
+       * todo redimensionamento — a montagem inclusive, que é quando o alvo sai
+       * do tamanho mínimo para o real.
+       */
+      let larguraDoAlvo = 0;
+      let alturaDoAlvo = 0;
+      let deslocX = 0;
+      let deslocY = 0;
+      if (porBloco) {
+        larguraDoAlvo = emDegraus(Math.ceil(blocosX) + 2);
+        alturaDoAlvo = emDegraus(Math.ceil(porLado) + 2);
+        redimensionarAlvo(gl, alvoDosBlocos, larguraDoAlvo, alturaDoAlvo, false);
+        deslocX = Math.floor(larguraDoAlvo / 2);
+        deslocY = Math.floor(alturaDoAlvo / 2);
+      }
+
       // ── Rastro, antes do campo do mesmo quadro ───────────────────────────
       if (programaDoFluxo && uFluxo) {
         const [leitura, escrita] = pingPong;
@@ -499,8 +521,9 @@ export function criarCampo(
       // Sem rastro nenhum ligado não há textura na unidade 0, e amostrar uma
       // textura incompleta devolve preto — que é o rastro em repouso, e o que
       // o three entregava com o uniform em `null`. **O `else` não é higiene**:
-      // sem ele a unidade continuaria com a textura do próprio alvo, que é um
-      // feedback loop — `INVALID_OPERATION`, e o passe não desenha.
+      // sem ele a unidade continuaria com a textura que o passe anterior lá
+      // deixou, e ler a textura do alvo em que se desenha é o mesmo feedback
+      // loop descrito acima.
       if (pingPong.length) gl.bindTexture(gl.TEXTURE_2D, pingPong[0].textura);
       else gl.bindTexture(gl.TEXTURE_2D, null);
       gl.uniform2f(uCampo.uBlocos, blocosX, porLado);
@@ -518,12 +541,6 @@ export function criarCampo(
         info.render.frame++;
         return;
       }
-
-      const larguraDoAlvo = emDegraus(Math.ceil(blocosX) + 2);
-      const alturaDoAlvo = emDegraus(Math.ceil(porLado) + 2);
-      redimensionarAlvo(gl, alvoDosBlocos, larguraDoAlvo, alturaDoAlvo, false);
-      const deslocX = Math.floor(larguraDoAlvo / 2);
-      const deslocY = Math.floor(alturaDoAlvo / 2);
 
       gl.uniform2f(uCampo.uDeslocamento, deslocX, deslocY);
       gl.bindFramebuffer(gl.FRAMEBUFFER, alvoDosBlocos.fbo);
