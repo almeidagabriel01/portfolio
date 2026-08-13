@@ -147,11 +147,17 @@ export const ptBR = {
        * todos com case escrito" e o título dela é "Nenhum deles começou
        * pronto". Falar de contagem ou de case aqui era ler a mesma frase duas
        * vezes com uma rolagem de distância.
+       *
+       * **Quatro palavras, como nas outras rotas, e isso é da animação.** Cada
+       * palavra entra 0,15s depois da anterior, então o escalonamento é o que
+       * faz a entrada ser lida como entrada. Medido: com duas palavras
+       * ("Trabalho publicado") o hero desta rota abria em 27ms de
+       * escalonamento, contra 335ms da home — e o que se via era um salto.
        */
       frases: [
-        "Trabalho *publicado*",
+        "O que eu *entreguei*",
         "Cada escolha tem *motivo*",
-        "Feito para *uso real*",
+        "Feito para o *uso real*",
       ],
     },
     sobre: {
@@ -392,9 +398,9 @@ export const enUS = {
     projetos: {
       rotulo: "Projects",
       frases: [
-        "Published *work*",
+        "What I have *shipped*",
         "Every choice has a *reason*",
-        "Made for *real use*",
+        "Made for the *real world*",
       ],
     },
     sobre: {

@@ -164,13 +164,20 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
      * segundo plano), e o `webglcontextlost` **só permite restauro se for
      * cancelado**. Sem cancelar, o canvas fica preto para sempre.
      */
-    const [geracao, setGeracao] = useState(0);
     /**
-     * Distingue "este efeito está a correr de novo porque o contexto voltou"
-     * de "o campo está a sair do DOM". Só no segundo caso o contexto é
-     * devolvido ao browser — ver `destruir`.
+     * Sobe sempre que o contexto WebGL cai, e é a **`key` do `<canvas>`**.
+     *
+     * Perder o contexto é rotina: o SO reclama a GPU, a aba fica em segundo
+     * plano, ou o DevTools liga a emulação de dispositivo — este último foi o
+     * que apareceu em uso, e o campo não voltava mais.
+     *
+     * **Esperar pelo `webglcontextrestored` não basta.** O evento só chega se o
+     * browser decidir restaurar, e quando ele não chega o canvas fica preto
+     * para sempre. Trocar a `key` resolve na raiz: o React descarta o nó e
+     * monta outro, e um `<canvas>` novo dá um contexto novo — sem depender da
+     * boa vontade de ninguém.
      */
-    const restaurando = useRef(false);
+    const [geracao, setGeracao] = useState(0);
 
     /**
      * **O contexto só nasce quando o campo se aproxima da tela.**
@@ -215,13 +222,13 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
       const elemento = canvas.current;
       if (!elemento) return;
 
-      const aoPerder = (evento: Event) => evento.preventDefault();
-      const aoRestaurar = () => {
-        restaurando.current = true;
+      // `preventDefault` mantém a porta aberta para o browser restaurar
+      // sozinho; a troca de `key` cobre o caso em que ele não restaura.
+      const trocarDeCanvas = (evento: Event) => {
+        evento.preventDefault();
         setGeracao((n) => n + 1);
       };
-      elemento.addEventListener("webglcontextlost", aoPerder);
-      elemento.addEventListener("webglcontextrestored", aoRestaurar);
+      elemento.addEventListener("webglcontextlost", trocarDeCanvas);
 
       let renderizador: CampoWebGL | null = null;
       let observador: IntersectionObserver | null = null;
@@ -291,8 +298,7 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
 
       return () => {
         observador?.disconnect();
-        elemento.removeEventListener("webglcontextlost", aoPerder);
-        elemento.removeEventListener("webglcontextrestored", aoRestaurar);
+        elemento.removeEventListener("webglcontextlost", trocarDeCanvas);
         if (!renderizador) return;
         campo.current = null;
         /**
@@ -307,16 +313,7 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
         ) {
           delete window.__campoRenderer;
         }
-        /**
-         * Lido **aqui**, e não no corpo do efeito: quem marca o restauro é o
-         * evento, que chega depois de o efeito já ter corrido. Lendo o ref no
-         * corpo, a limpeza fechava sobre o valor da montagem (sempre falso) e
-         * o contexto acabado de restaurar era perdido de novo — o campo ficava
-         * preto e o `canvas-robustness` pegava.
-         */
-        const eraRestauro = restaurando.current;
-        restaurando.current = false;
-        renderizador.destruir(!eraRestauro);
+        renderizador.destruir();
       };
     }, [usarMouse, reducedMotion, geracao]);
 
@@ -335,7 +332,9 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
       const observador = new ResizeObserver(medir);
       observador.observe(elemento);
       return () => observador.disconnect();
-    }, []);
+      // `geracao`: o contexto perdido troca o `<canvas>`, e um observador
+      // preso ao nó antigo nunca mais mede nada.
+    }, [geracao]);
 
     // ── Ponteiro ───────────────────────────────────────────────────────────
     useEffect(() => {
@@ -451,7 +450,8 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
         if (pedido) cancelAnimationFrame(pedido);
         if (quadroPedido.current) cancelAnimationFrame(quadroPedido.current);
       };
-    }, [reducedMotion, suavizar]);
+      // `geracao` pela mesma razão do observador de tamanho: o nó muda.
+    }, [reducedMotion, suavizar, geracao]);
 
     // ── Handle imperativo (AD-003) ─────────────────────────────────────────
     const handle = useMemo<CampoHandle>(
@@ -483,6 +483,11 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
 
     return (
       <canvas
+        /**
+         * A `key` é a geração: contexto perdido troca o nó, e nó novo dá
+         * contexto novo. Ver `geracao`.
+         */
+        key={geracao}
         ref={canvas}
         aria-hidden
         className="canvas-do-campo absolute inset-0"

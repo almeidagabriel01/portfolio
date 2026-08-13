@@ -389,7 +389,15 @@ export function criarCampo(
       ]
     : [];
 
-  const dpr = Math.min(globalThis.devicePixelRatio || 1, DPR_MAXIMO);
+  /**
+   * **Lido a cada medida, não uma vez só.** O `devicePixelRatio` muda em
+   * runtime: arrastar a janela para um monitor de outra densidade, dar zoom, ou
+   * ligar a emulação de dispositivo no DevTools. Capturado na criação, o buffer
+   * continuava na densidade antiga — medido no DevTools com o *device toolbar*
+   * ligado: `dpr` 3 e buffer ainda em `390x844`, o campo esticado três vezes.
+   */
+  const densidade = () => Math.min(globalThis.devicePixelRatio || 1, DPR_MAXIMO);
+  let dpr = densidade();
   let largura = 1;
   let altura = 1;
   let tempo = 0;
@@ -437,6 +445,7 @@ export function criarCampo(
     definirTamanho(l, h) {
       largura = Math.max(1, l);
       altura = Math.max(1, h);
+      dpr = densidade();
       // Arredondar para cima: caixa fracionária faz o browser reamostrar um
       // efeito de 1 bit, e a cobertura muda de verdade (medido).
       canvas.width = Math.ceil(largura * dpr);

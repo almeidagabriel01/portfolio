@@ -91,7 +91,7 @@ export function StackTransversal({ projects }: { projects: Project[] }) {
       <div className="mt-48">
         <TituloDistribuido
           id="stack-transversal"
-          className="type-m-40 md:type-m-96 font-display font-semibold leading-[0.92] tracking-[-0.02em]"
+          className="type-m-32 md:type-m-96 font-display font-semibold leading-[0.92] tracking-[-0.02em]"
         >
           {marcarUltimaPalavra(`${t.stack.title}${t.stack.highlight}`)}
         </TituloDistribuido>
