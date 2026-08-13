@@ -200,9 +200,17 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
         usarMouse,
       });
       if (!renderizador) {
-        elemento.removeEventListener("webglcontextlost", aoPerder);
-        elemento.removeEventListener("webglcontextrestored", aoRestaurar);
-        return;
+        /**
+         * **Os ouvintes ficam.** Devolver `null` aqui é "não deu **agora**" —
+         * contexto perdido, ou o browser no teto de contextos vivos. Tirando
+         * os ouvintes, o `webglcontextrestored` que viesse a seguir não
+         * encontrava ninguém e o campo ficava preto para sempre. Só o
+         * desmonte os remove, na limpeza abaixo.
+         */
+        return () => {
+          elemento.removeEventListener("webglcontextlost", aoPerder);
+          elemento.removeEventListener("webglcontextrestored", aoRestaurar);
+        };
       }
       campo.current = renderizador;
       if (process.env.NEXT_PUBLIC_E2E) window.__campoRenderer = renderizador;

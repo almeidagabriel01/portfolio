@@ -1,6 +1,10 @@
 /**
- * Detecta suporte a WebGL antes de montar o Canvas (PORT-04). Sem isso, um
- * dispositivo sem WebGL lançaria dentro da árvore do R3F.
+ * Detecta suporte a WebGL2 antes de montar o canvas (PORT-04).
+ *
+ * **WebGL2 e não WebGL1**, e a diferença deixou de ser cosmética: o campo
+ * desenha em WebGL2 direto (`campo.webgl.ts` — VAO, `RGBA16F` no rastro), e num
+ * aparelho que só tem WebGL1 o renderizador devolve `null`. Aceitar WebGL1 aqui
+ * montaria um `<canvas>` que nunca pinta, em vez de não montar canvas nenhum.
  *
  * Pura de propósito: sem memo de módulo, para que o resultado reflita o
  * ambiente no momento da chamada.
@@ -11,7 +15,7 @@ export function isWebGLAvailable(): boolean {
 
   const canvas = document.createElement("canvas");
   try {
-    const gl = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
+    const gl = canvas.getContext("webgl2");
     if (!gl) return false;
 
     // O browser limita contextos WebGL simultâneos, então descarta o de teste

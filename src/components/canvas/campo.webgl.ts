@@ -130,6 +130,14 @@ function compilar(
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
     const log = gl.getShaderInfoLog(shader);
     gl.deleteShader(shader);
+    /**
+     * **Log vazio quer dizer contexto perdido, não shader torto.** Num
+     * contexto perdido toda compilação reprova e o `getShaderInfoLog` devolve
+     * `null` — o erro que sai daqui então aponta para o GLSL, que é o único
+     * sítio onde o defeito não está. Vale a distinção: foi ela que custou o
+     * diagnóstico de `shader não compilou: null`.
+     */
+    if (gl.isContextLost()) throw new Error("contexto WebGL perdido");
     throw new Error(`shader não compilou: ${log}`);
   }
   return shader;
@@ -260,6 +268,12 @@ export function criarCampo(
     stencil: false,
     powerPreference: "high-performance",
   });
+  /**
+   * Contexto perdido não se conserta compilando por cima: tudo reprova e o
+   * log vem vazio. Sair aqui é o que transforma isso num campo que não acende
+   * (e volta no `webglcontextrestored`) em vez de num erro no meio da página.
+   */
+  if (gl?.isContextLost()) return null;
   if (!gl) return null;
 
   /**
@@ -586,8 +600,22 @@ export function criarCampo(
        * A exceção é o rebuild por `webglcontextrestored`: aí o contexto que
        * está a ser largado é o **mesmo objeto** que acabou de voltar à vida, e
        * perdê-lo mataria o campo que se estava a reconstruir.
+       *
+       * **E a perda vai para o fim da fila, atrás de um teste de `isConnected`.**
+       * Em desenvolvimento o React monta, limpa e remonta cada efeito (Strict
+       * Mode). O `<canvas>` é o **mesmo elemento** nas duas montagens, e
+       * `getContext` num canvas cujo contexto foi perdido devolve esse mesmo
+       * contexto, perdido — a segunda montagem então reprova toda compilação
+       * com log vazio (`shader não compilou: null`) e derruba a página. O
+       * microtask corre depois do commit do React: numa remontagem o elemento
+       * continua no documento e a perda é cancelada; num desmonte a sério ele
+       * já saiu, e o contexto é devolvido como tem de ser.
        */
-      if (perderContexto) gl.getExtension("WEBGL_lose_context")?.loseContext();
+      if (!perderContexto) return;
+      queueMicrotask(() => {
+        if (canvas.isConnected) return;
+        gl.getExtension("WEBGL_lose_context")?.loseContext();
+      });
     },
   };
 }

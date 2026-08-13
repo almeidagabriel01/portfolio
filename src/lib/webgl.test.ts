@@ -28,13 +28,17 @@ describe("isWebGLAvailable (PORT-04)", () => {
     expect(isWebGLAvailable()).toBe(true);
   });
 
-  it("cai para webgl quando webgl2 não está disponível", () => {
+  /**
+   * WebGL1 sozinho não serve: o campo desenha em WebGL2 direto e devolveria
+   * `null` no aparelho, deixando um `<canvas>` montado que nunca pinta.
+   */
+  it("retorna false quando só há webgl1", () => {
     const { context } = fakeContext();
     stubGetContext((id) => (id === "webgl" ? context : null));
-    expect(isWebGLAvailable()).toBe(true);
+    expect(isWebGLAvailable()).toBe(false);
   });
 
-  it("retorna false quando webgl2 e webgl retornam null", () => {
+  it("retorna false quando webgl2 retorna null", () => {
     stubGetContext(() => null);
     expect(isWebGLAvailable()).toBe(false);
   });
