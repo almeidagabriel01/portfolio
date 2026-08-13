@@ -1,6 +1,7 @@
 "use client";
 
-import { DistributedHeadline } from "@/components/ui/DistributedHeadline";
+import { TituloDistribuido } from "@/components/motion/TituloDistribuido";
+import { dividirUltimaPalavra } from "@/components/ui/DistributedHeadline";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import type { Project } from "@/data/projects";
 import { useSectionReveal } from "@/hooks/useSectionReveal";
@@ -53,6 +54,17 @@ export function aggregateStack(projects: Project[]): TecnologiaTransversal[] {
     );
 }
 
+/**
+ * O acento vai na **última palavra**, que é a regra do título distribuído
+ * (UI-03) — e não no `highlight` inteiro do dado, que aqui é "das entregas.".
+ * Marcar os dois pintava "das" de âmbar e mudava a distribuição, porque o
+ * trecho marcado entra como uma palavra só.
+ */
+function marcarUltimaPalavra(frase: string): string {
+  const [inicio, ultima] = dividirUltimaPalavra(frase);
+  return [...inicio, `*${ultima}*`].join(" ");
+}
+
 export function StackTransversal({ projects }: { projects: Project[] }) {
   const t = useTranslations();
   const { ref, className } = useSectionReveal<HTMLElement>();
@@ -68,10 +80,21 @@ export function StackTransversal({ projects }: { projects: Project[] }) {
       className={`w-calc ${className}`}
     >
       <SectionLabel>{t.stack.label}</SectionLabel>
+      {/*
+        O mesmo gesto de abertura das seções da home: as palavras chegam
+        agrupadas no centro e abrem até as bordas da coluna quando a seção entra
+        na tela. Era o título estático (`DistributedHeadline`), que já nascia
+        distribuído — mesma imagem final, sem o movimento. O rótulo continua
+        sendo o `SectionLabel` da rota, com a sua régua; quem ganhou o efeito é
+        só o título.
+      */}
       <div className="mt-48">
-        <DistributedHeadline id="stack-transversal">
-          {`${t.stack.title}${t.stack.highlight}`}
-        </DistributedHeadline>
+        <TituloDistribuido
+          id="stack-transversal"
+          className="type-m-40 md:type-m-96 font-display font-semibold leading-[0.92] tracking-[-0.02em]"
+        >
+          {marcarUltimaPalavra(`${t.stack.title}${t.stack.highlight}`)}
+        </TituloDistribuido>
       </div>
       <p className="mt-32 max-w-[52ch] type-m-16 leading-relaxed text-ink/55">
         {t.stack.description}

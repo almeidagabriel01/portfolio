@@ -459,7 +459,7 @@ button {
 }
 
 /*
- * 0,7s de duração e 0,08s de atraso por palavra, e os dois números foram
+ * 0,9s de duração e 0,15s de atraso por palavra, e os dois números foram
  * medidos, não escolhidos.
  *
  * **Esta palavra é o elemento do LCP no celular**, e o Chrome só a conta
@@ -470,14 +470,18 @@ button {
  * 2,5s.
  *
  * A curva, o blur, a escala e o escalonamento continuam os mesmos; o que mudou
- * é o relógio: a frase inteira assenta em ~0,95s, bem dentro dos 5s do ciclo,
- * e a rotação entre frases continua com a mesma cadeia (título esmaece 0,5s,
- * palavras entram escalonadas). Quem mexer aqui mexe também em `DURACAO` e `ATRASO_POR_PALAVRA`,
+ * é o relógio: a frase inteira assenta em ~1,35s, bem dentro dos 5s do ciclo.
+ *
+ * **0,7s foi longe demais, e o teto é perceptivo, não numérico.** Na
+ * `OUT_EXPO` cerca de 85% da opacidade acontece nos primeiros 15% do tempo:
+ * com 0,7s isso são ~105ms por palavra, e a entrada deixa de ser lida como
+ * movimento — vira um salto para o estado final. 0,9s mantém ~135ms, que ainda
+ * se vê. Quem for encurtar de novo mede a percepção, não só o LCP. Quem mexer aqui mexe também em `DURACAO` e `ATRASO_POR_PALAVRA`,
  * no `PalavrasQueEntram`: é a mesma entrada por dois caminhos (CSS na primeira
  * pintura, motion nas rotações seguintes).
  */
 .entrada-da-palavra {
-  animation: entrada-da-palavra 0.7s cubic-bezier(0.19, 1, 0.22, 1) backwards;
+  animation: entrada-da-palavra 0.9s cubic-bezier(0.19, 1, 0.22, 1) backwards;
 }
 
 /**

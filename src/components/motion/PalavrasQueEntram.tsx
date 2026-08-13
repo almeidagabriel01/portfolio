@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useAnimationControls } from "motion/react";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { EASE, TRANSICAO } from "@/lib/motion";
 import { separarPalavras } from "@/lib/texto";
 
@@ -47,8 +47,8 @@ import { separarPalavras } from "@/lib/texto";
  */
 
 // Espelham `.entrada-da-palavra` em globals.css — ver lá o porquê dos números.
-const DURACAO = 0.7;
-const ATRASO_POR_PALAVRA = 0.08;
+const DURACAO = 0.9;
+const ATRASO_POR_PALAVRA = 0.15;
 /** O fade do título, tanto na saída como na entrada. */
 const DURACAO_DO_TITULO = 0.5;
 
@@ -119,24 +119,33 @@ export function PalavrasQueEntram({
   const palavrasControle = useAnimationControls();
 
   /**
-   * **A entrada na montagem, quando não foi o CSS a fazê-la.**
+   * **Manda entrar a frase que está na tela — e roda depois do render dela.**
    *
-   * Só existe caminho por CSS na primeira pintura da página. Quem monta depois
-   * — uma navegação de cliente para `/projetos` ou `/sobre` — nasce com o
-   * título em `opacity: 0` e as palavras em `oculta`, à espera de ordem. Sem
-   * esta, a ordem só chegava na primeira troca de frase, e a headline ficava
-   * **invisível durante cinco segundos** sobre um campo que já tinha acendido.
+   * Cobre os dois momentos: a montagem (quando não foi o CSS a animar, como
+   * numa navegação de cliente para `/projetos`) e cada troca de frase.
    *
-   * Roda uma vez: as três dependências são estáveis.
+   * **Depender de `fraseNaTela` é o que conserta a palavra que some.** Antes, a
+   * ordem "visível" saía no mesmo bloco do `setFraseNaTela`, ou seja, **antes**
+   * de o React montar os `<span>` da frase nova. Palavra que já existia recebia
+   * a ordem; palavra a mais, não — ela montava em `oculta` e ficava invisível
+   * até a troca seguinte. Aparecia sempre que a frase nova era mais longa que a
+   * anterior: em `/projetos`, "Trabalho publicado" (2 palavras) seguida de
+   * "Cada escolha tem motivo" (4) deixava "tem motivo" fora da tela. Como
+   * efeito, isto corre **depois** do commit, com todos os spans montados.
    */
+  const primeiraEntrada = useRef(true);
   useEffect(() => {
-    if (entradaPorCss) return;
+    if (primeiraEntrada.current) {
+      primeiraEntrada.current = false;
+      // Na primeira pintura da página quem anima é o CSS; o motion não repete.
+      if (entradaPorCss) return;
+    }
     titulo.start({
       opacity: 1,
       transition: { ...TRANSICAO, duration: DURACAO_DO_TITULO },
     });
     palavrasControle.start("visivel");
-  }, [entradaPorCss, titulo, palavrasControle]);
+  }, [fraseNaTela, entradaPorCss, titulo, palavrasControle]);
 
   useEffect(() => {
     if (children === fraseNaTela) return;
@@ -150,15 +159,9 @@ export function PalavrasQueEntram({
       if (cancelado) return;
 
       // Com o título invisível, repor as palavras e trocar o texto não aparece.
+      // Quem manda a frase nova entrar é o efeito acima, no render seguinte.
       palavrasControle.set("oculta");
       setFraseNaTela(children);
-
-      // O título volta enquanto as palavras entram, como na montagem.
-      titulo.start({
-        opacity: 1,
-        transition: { ...TRANSICAO, duration: DURACAO_DO_TITULO },
-      });
-      palavrasControle.start("visivel");
     })();
 
     return () => {
