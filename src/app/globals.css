@@ -459,7 +459,7 @@ button {
 }
 
 /*
- * 0,9s de duração e 0,15s de atraso por palavra, e os dois números foram
+ * 0,7s de duração e 0,08s de atraso por palavra, e os dois números foram
  * medidos, não escolhidos.
  *
  * **Esta palavra é o elemento do LCP no celular**, e o Chrome só a conta
@@ -470,12 +470,14 @@ button {
  * 2,5s.
  *
  * A curva, o blur, a escala e o escalonamento continuam os mesmos; o que mudou
- * é o relógio. Quem mexer aqui mexe também em `DURACAO` e `ATRASO_POR_PALAVRA`,
+ * é o relógio: a frase inteira assenta em ~0,95s, bem dentro dos 5s do ciclo,
+ * e a rotação entre frases continua com a mesma cadeia (título esmaece 0,5s,
+ * palavras entram escalonadas). Quem mexer aqui mexe também em `DURACAO` e `ATRASO_POR_PALAVRA`,
  * no `PalavrasQueEntram`: é a mesma entrada por dois caminhos (CSS na primeira
  * pintura, motion nas rotações seguintes).
  */
 .entrada-da-palavra {
-  animation: entrada-da-palavra 0.9s cubic-bezier(0.19, 1, 0.22, 1) backwards;
+  animation: entrada-da-palavra 0.7s cubic-bezier(0.19, 1, 0.22, 1) backwards;
 }
 
 /**
