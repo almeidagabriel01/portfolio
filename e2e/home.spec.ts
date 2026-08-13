@@ -1211,22 +1211,13 @@ test.describe("Rota /: contato e montagem (SEC-01, SEC-04, SEC-16)", () => {
 });
 
 /**
- * Controle positivo do reveal de seção (`useSectionReveal`).
+ * O bloco "reveal das seções novas" saiu na v5, e o hook que ele cobria saiu de
+ * vez com a `StackTransversal`.
  *
- * Sem ele, nenhuma asserção desta suíte prova que as seções novas chegam a
- * aparecer: `toBeVisible()` do Playwright ignora `opacity`, e nenhum dos testes
- * acima rola a página. Um `IntersectionObserver` que nunca dispara deixaria
- * empresas, entregas e trajetória em branco para todo visitante com JS, e a
- * suíte inteira continuaria verde. É o mesmo padrão de controle positivo que o
- * `a11y.spec.ts` usa para o contador do `ScrollBridge`.
- */
-/**
- * O bloco "reveal das seções novas" saiu na v5.
- *
- * Ele cobria o fade de **seção inteira** do `useSectionReveal`, mecanismo da v4.
- * Nenhuma seção da home usa mais isso: cada uma foi reescrita no molde novo
- * e anima por elemento: título por FLIP de layout, conteúdo por
- * `useInView` com `once: true` (AD-007), rodapé por scroll.
+ * Ele media o fade de **seção inteira** do `useSectionReveal`, mecanismo da v4.
+ * Nenhuma seção do site usa mais isso: cada uma anima por elemento — título por
+ * FLIP de layout, conteúdo por `useInView` com `once: true` (AD-007), rodapé por
+ * scroll.
  *
  * A garantia que importava (conteúdo escondido volta a aparecer) mudou de
  * dono e ficou mais forte, nos dois testes abaixo.

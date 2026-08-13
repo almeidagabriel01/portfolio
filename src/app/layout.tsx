@@ -77,8 +77,8 @@ export default function RootLayout({
 
           É o modo de falha padrão de animação de entrada por observer: o SSR
           serve `opacity:0;filter:blur(10px);transform:translateY(20px)` e, sem
-          JS, nada o desfaz. Este repo decidiu o contrário em
-          `useSectionReveal.ts`: "o conteúdo destas seções é o produto".
+          JS, nada o desfaz. Este repo decide o contrário: o conteúdo destas
+          seções é o produto, e ele fica na tela mesmo sem script.
 
           O seletor casa o **estilo inline** em vez de exigir uma marcação em
           cada elemento animado: é o próprio `initial` do motion que se anuncia

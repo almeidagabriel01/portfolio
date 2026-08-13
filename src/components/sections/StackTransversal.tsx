@@ -4,7 +4,6 @@ import { TituloDistribuido } from "@/components/motion/TituloDistribuido";
 import { dividirUltimaPalavra } from "@/components/ui/DistributedHeadline";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import type { Project } from "@/data/projects";
-import { useSectionReveal } from "@/hooks/useSectionReveal";
 import { useTranslations } from "@/hooks/useTranslations";
 
 export interface TecnologiaTransversal {
@@ -67,17 +66,29 @@ function marcarUltimaPalavra(frase: string): string {
 
 export function StackTransversal({ projects }: { projects: Project[] }) {
   const t = useTranslations();
-  const { ref, className } = useSectionReveal<HTMLElement>();
   const tecnologias = aggregateStack(projects);
 
   return (
     <section
-      ref={ref}
       aria-labelledby="stack-transversal"
       // `w-calc` traz a calha, e o `mt` próprio saiu: o vão entre blocos é o
       // `gap` do `<main>` da rota (AD-014), e as duas fontes de espaço somavam
-      // 200px onde o molde pede 100. O `className` é do reveal de seção.
-      className={`w-calc ${className}`}
+      // 200px onde o molde pede 100.
+      //
+      // **Sem `useSectionReveal`, e era o único sítio do site que o tinha.** O
+      // reveal esmaece a seção inteira de `opacity: 0` em 700ms, disparado por
+      // 15% da altura da seção; o título distribui em 600ms, disparado por 40%
+      // da altura dele. Numa seção alta e num título baixo — que é o caso no
+      // estreito — o segundo gatilho chega ~200px de rolagem **antes** do
+      // primeiro, e medido a 390×844 as duas janelas coincidem quase exactamente:
+      // o `justify-content` troca com a seção ainda a `opacity: 0` e as palavras
+      // acabam de abrir no quadro em que ela chega a `opacity: 1`. O gesto
+      // inteiro corre por baixo do esmaecimento, e o que se vê é um título que
+      // aparece já distribuído.
+      //
+      // Nenhuma outra seção do site tem reveal: na home o abrir do título **é**
+      // a entrada da seção, e é essa a referência.
+      className="w-calc"
     >
       <SectionLabel>{t.stack.label}</SectionLabel>
       {/*

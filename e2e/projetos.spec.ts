@@ -4,6 +4,13 @@ import { relatorioDeContraste } from "./contrast";
 import { enUS, ptBR } from "../src/locales";
 import { portfolioProjects } from "../src/data/projects";
 
+declare global {
+  interface Window {
+    /** Opacidade da seção no quadro em que o título trocou de distribuição. */
+    __opacidadeNaTroca?: string;
+  }
+}
+
 /**
  * Os nomes vêm do spec (PORT-13 + as correções C1/C2 da v3), não do array: o
  * dado é o que está sob teste.
@@ -273,43 +280,69 @@ test.describe("Rota /projetos: stack transversal (SEC-13, SEC-16)", () => {
   });
 
   /**
-   * Controle positivo do reveal, na única seção da v3 que usa
-   * `useSectionReveal` fora da home.
+   * **O título abre com a seção à vista, e no estreito também.**
    *
-   * Sem ele nenhuma asserção desta suíte prova que a seção chega a aparecer:
-   * `toBeVisible()` do Playwright ignora `opacity`, e a auditoria de
-   * reduced-motion do `a11y.spec.ts` mede o caminho em que o hook devolve
-   * visível incondicionalmente. Um `IntersectionObserver` que não dispara
-   * deixaria a stack em branco para todo visitante com movimento permitido,
-   * com o gate inteiro verde.
+   * Esta seção era a única do site com `useSectionReveal`: a seção inteira
+   * esmaecia de `opacity: 0` em 700ms, disparada por 15% da altura dela, e o
+   * título distribuía em 600ms, disparado por 40% da altura dele. Numa seção
+   * alta com um título baixo — 390×844 é o caso — o segundo gatilho chega
+   * antes do primeiro e as duas janelas quase coincidem: medido, o
+   * `justify-content` trocava com a seção ainda a `opacity: 0` e as palavras
+   * terminavam de abrir no quadro em que ela chegava a `opacity: 1`. O gesto
+   * inteiro corria por baixo do esmaecimento e o que se via era um título a
+   * aparecer já distribuído — ao passo que no desktop, com o título alto e a
+   * seção curta, a ordem se invertia e o gesto aparecia.
+   *
+   * Por isso o que se mede é **a opacidade no momento da troca**, não o estado
+   * final: a caixa final estava correta o tempo todo, e é por isso que nenhuma
+   * sonda de geometria pegava isto.
    */
-  test("a stack transversal nasce escondida e aparece ao entrar na viewport", async ({
-    page,
-  }) => {
-    await page.goto("/projetos");
-    await page.waitForFunction(() => Boolean(window.__lenis));
+  test.describe("o título distribui à vista", () => {
+    for (const viewport of [
+      { width: 390, height: 844 },
+      { width: 1440, height: 900 },
+    ]) {
+      test(`em ${viewport.width}x${viewport.height}`, async ({ page }) => {
+        await page.setViewportSize(viewport);
+        await page.goto("/projetos");
+        await page.waitForFunction(() => Boolean(window.__lenis));
 
-    const opacidade = () =>
-      page
-        .getByRole("region", { name: STACK_REGIAO.pt })
-        .evaluate((node) => getComputedStyle(node).opacity);
-
-    await expect.poll(opacidade).toBe("0");
-
-    // O scroll é refeito a cada tentativa: `offsetTop` é lido antes da rolagem
-    // e as fontes chegam depois do `load`, empurrando o layout para baixo.
-    await expect
-      .poll(async () => {
-        await page
-          .getByRole("region", { name: STACK_REGIAO.pt })
-          .evaluate((node) =>
-            window.__lenis?.scrollTo((node as HTMLElement).offsetTop, {
-              immediate: true,
-            }),
+        // Amostra a cada quadro até o `justify-content` trocar, e guarda a
+        // opacidade da seção **nesse** quadro. `once: true` no `useInView`
+        // (AD-007) quer dizer que só há uma chance de observar.
+        await page.evaluate(() => {
+          const secao = document.querySelector<HTMLElement>(
+            '[aria-labelledby="stack-transversal"]',
           );
-        return opacidade();
-      })
-      .toBe("1");
+          const linha = document
+            .getElementById("stack-transversal")
+            ?.querySelector<HTMLElement>("span[aria-hidden]");
+          if (!secao || !linha) throw new Error("seção ou título ausente");
+          const olhar = () => {
+            if (getComputedStyle(linha).justifyContent === "space-between") {
+              window.__opacidadeNaTroca = getComputedStyle(secao).opacity;
+              return;
+            }
+            requestAnimationFrame(olhar);
+          };
+          requestAnimationFrame(olhar);
+        });
+
+        await page.evaluate(() =>
+          window.__lenis?.scrollTo(
+            (
+              document.querySelector(
+                '[aria-labelledby="stack-transversal"]',
+              ) as HTMLElement
+            ).offsetTop,
+            { immediate: true },
+          ),
+        );
+
+        await page.waitForFunction(() => Boolean(window.__opacidadeNaTroca));
+        expect(await page.evaluate(() => window.__opacidadeNaTroca)).toBe("1");
+      });
+    }
   });
 
   test("a stack transversal renderiza em inglês", async ({ page }) => {
