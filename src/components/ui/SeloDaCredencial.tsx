@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 /**
  * O painel do cartão de credencial: o que em navegador é a foto da matéria.
  *
@@ -13,9 +15,8 @@
  * glifos.
  */
 
-/** Passo da malha, em unidades do `viewBox`. */
+/** Passo da malha, em unidades do `viewBox`: o lado do azulejo do padrão. */
 const PASSO = 6.25;
-const COLUNAS = Math.round(100 / PASSO);
 
 /**
  * Um símbolo por cartão, **na ordem em que a seção os renderiza**. A contagem é
@@ -64,6 +65,7 @@ const SIMBOLOS = [
 export const TOTAL_DE_SELOS = SIMBOLOS.length;
 
 export function SeloDaCredencial({ indice }: { indice: number }) {
+  const malha = useId();
   const simbolo = SIMBOLOS[indice];
   if (!simbolo) return null;
 
@@ -84,19 +86,46 @@ export function SeloDaCredencial({ indice }: { indice: number }) {
         className="area size-full"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <g fill="var(--color-accent)" opacity="0.45">
-          {Array.from({ length: COLUNAS }, (_, coluna) =>
-            Array.from({ length: Math.round(COLUNAS * (450 / 345)) }, (_, linha) => (
-              <rect
-                key={`${coluna}-${linha}`}
-                x={coluna * PASSO + PASSO / 2 - 0.55}
-                y={linha * PASSO + PASSO / 2 - 0.55}
-                width="1.1"
-                height="1.1"
-              />
-            )),
-          )}
-        </g>
+        {/*
+          **Um `<pattern>`, e não 336 `<rect>`.**
+
+          A malha é regular por definição — passo fixo, ponto do mesmo tamanho
+          em toda parte — e era emitida ponto a ponto: 16 × 21 retângulos por
+          cartão, três cartões na página. Medido no HTML da home: **20,3 kB por
+          selo**, 61 kB no total (26% do documento) e mais de mil nós de DOM
+          que o browser tem de construir antes da primeira pintura, num
+          elemento decorativo que ninguém lê.
+
+          O `patternUnits="userSpaceOnUse"` mantém a malha nas unidades do
+          `viewBox`, então a repetição cai exatamente onde os retângulos
+          caíam: o ponto do azulejo fica em `PASSO/2 - 0.55`, que é a mesma
+          conta de antes, e o azulejo mede um passo de lado.
+
+          O `id` vem do `useId` porque três selos coexistem na mesma página, e
+          `url(#...)` resolve pelo primeiro id igual do documento.
+        */}
+        <defs>
+          <pattern
+            id={malha}
+            width={PASSO}
+            height={PASSO}
+            patternUnits="userSpaceOnUse"
+          >
+            <rect
+              x={PASSO / 2 - 0.55}
+              y={PASSO / 2 - 0.55}
+              width="1.1"
+              height="1.1"
+              fill="var(--color-accent)"
+            />
+          </pattern>
+        </defs>
+        <rect
+          width="100%"
+          height="100%"
+          fill={`url(#${malha})`}
+          opacity="0.45"
+        />
       </svg>
 
       {/*
