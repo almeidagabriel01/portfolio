@@ -107,69 +107,100 @@ test.describe("Header: marca que colapsa", () => {
      * letra mais externa (0.21s). Medir *quando cada letra chega* não depende
      * de acertar um instante.
      */
-    const partidas = await page.evaluate(async () => {
-      const raiz = document.querySelector("header a[aria-label]")!;
-      const letras = [...raiz.querySelectorAll("span.block")].filter(
-        (n) => (n.textContent ?? "").length === 1,
-      );
-      const ler = () => letras.map((n) => n.getBoundingClientRect().left);
-
-      const inicio = ler();
-      window.__lenis?.scrollTo(600, { immediate: true });
-
-      /**
-       * A amostra guarda **o instante**, não só a posição.
-       *
-       * A versão anterior devolvia índices de quadro e o teste cobrava uma
-       * distância de 3 quadros entre a primeira e a última letra. Isso é
-       * refém da taxa de quadros: o escalonamento tem 210ms de ponta a ponta,
-       * o que dá ~13 quadros a 60fps e **2** a 10fps. Isolado passava; na
-       * suíte cheia, com três rotas renderizando campo WebGL e a lista
-       * carregando iframes, a página cai para poucos fps e o mesmo
-       * escalonamento (inalterado) passava a reprovar. Em milissegundos a
-       * medida é a mesma em qualquer máquina.
-       */
-      const amostras: { t: number; x: number[] }[] = [];
-      const t0 = performance.now();
-      const ate = t0 + 900;
-      await new Promise<void>((pronto) => {
-        const tique = () => {
-          amostras.push({ t: performance.now() - t0, x: ler() });
-          if (performance.now() < ate) requestAnimationFrame(tique);
-          else pronto();
-        };
-        requestAnimationFrame(tique);
-      });
-
-      const fim = amostras.at(-1)!.x;
-      // Para cada letra, o instante do primeiro quadro em que ela saiu de
-      // perto da origem.
-      return inicio.map((x0, i) => {
-        const total = Math.abs(fim[i] - x0);
-        if (total < 4) return -1; // letra que mal se move não conta
-        const partiu = amostras.find(
-          (quadro) => Math.abs(quadro.x[i] - x0) > total * 0.15,
+    const medir = () =>
+      page.evaluate(async () => {
+        const raiz = document.querySelector("header a[aria-label]")!;
+        const letras = [...raiz.querySelectorAll("span.block")].filter(
+          (n) => (n.textContent ?? "").length === 1,
         );
-        return partiu ? Math.round(partiu.t) : -1;
-      });
-    });
+        const ler = () => letras.map((n) => n.getBoundingClientRect().left);
 
-    const validas = partidas.filter((f) => f >= 0);
-    expect(validas.length, "nenhuma letra se moveu").toBeGreaterThan(4);
+        // Cada tentativa começa com a marca aberta: rolar de volta ao topo a
+        // reabre, e sem isso a segunda medição não teria movimento nenhum.
+        window.__lenis?.scrollTo(0, { immediate: true });
+        await new Promise((pronto) => setTimeout(pronto, 900));
+
+        const inicio = ler();
+        window.__lenis?.scrollTo(600, { immediate: true });
+
+        /**
+         * A amostra guarda **o instante**, não só a posição.
+         *
+         * A versão anterior devolvia índices de quadro e o teste cobrava uma
+         * distância de 3 quadros entre a primeira e a última letra. Isso é
+         * refém da taxa de quadros: o escalonamento tem 210ms de ponta a ponta,
+         * o que dá ~13 quadros a 60fps e **2** a 10fps. Em milissegundos a
+         * medida é a mesma em qualquer máquina.
+         */
+        const amostras: { t: number; x: number[] }[] = [];
+        const t0 = performance.now();
+        await new Promise<void>((pronto) => {
+          const tique = () => {
+            amostras.push({ t: performance.now() - t0, x: ler() });
+            if (performance.now() - t0 < 900) requestAnimationFrame(tique);
+            else pronto();
+          };
+          requestAnimationFrame(tique);
+        });
+
+        const fim = amostras.at(-1)!.x;
+        // Para cada letra, o instante do primeiro quadro em que ela saiu de
+        // perto da origem.
+        const partidas = inicio.map((x0, i) => {
+          const total = Math.abs(fim[i] - x0);
+          if (total < 4) return -1; // letra que mal se move não conta
+          const partiu = amostras.find(
+            (quadro) => Math.abs(quadro.x[i] - x0) > total * 0.15,
+          );
+          return partiu ? Math.round(partiu.t) : -1;
+        });
+
+        /**
+         * A qualidade da própria amostragem, e ela precisa de ser cobrada.
+         *
+         * Nenhuma leitura de posição recupera o escalonamento se a página
+         * engasgar: numa pausa de meio segundo — que acontece na suíte cheia,
+         * com os campos WebGL a desenhar por software em cinco processos — a
+         * animação inteira corre entre dois quadros e todas as letras aparecem
+         * já chegadas. O intervalo medido dá zero com o escalonamento intacto.
+         */
+        const maiorVao = amostras.reduce(
+          (maior, quadro, i) =>
+            i === 0 ? quadro.t : Math.max(maior, quadro.t - amostras[i - 1].t),
+          0,
+        );
+        return { partidas, maiorVao };
+      });
 
     /**
-     * O escalonamento é isto: as letras não partem juntas. Em bloco, todas
-     * teriam o mesmo instante de partida e o intervalo seria zero.
-     *
-     * O piso é 60ms contra os 210ms que separam a primeira letra da última:
-     * folga para a granularidade do quadro (um quadro a 10fps já
-     * são 100ms), sem chegar perto de aceitar partida em bloco.
+     * A janela de medição é que se repete, não a asserção: se o quadro mais
+     * largo passou de 150ms, esta tentativa não tinha resolução para ver um
+     * escalonamento de 210ms, e a resposta certa é medir outra vez — não
+     * afrouxar o piso.
      */
-    const intervalo = Math.max(...validas) - Math.min(...validas);
-    expect(
-      intervalo,
-      "as letras partiram todas juntas: o escalonamento sumiu",
-    ).toBeGreaterThanOrEqual(60);
+    await expect(async () => {
+      const { partidas, maiorVao } = await medir();
+      expect(maiorVao, "a página engasgou: sem resolução para medir").toBeLessThan(
+        150,
+      );
+
+      const validas = partidas.filter((f) => f >= 0);
+      expect(validas.length, "nenhuma letra se moveu").toBeGreaterThan(4);
+
+      /**
+       * O escalonamento é isto: as letras não partem juntas. Em bloco, todas
+       * teriam o mesmo instante de partida e o intervalo seria zero.
+       *
+       * O piso é 60ms contra os 210ms que separam a primeira letra da última:
+       * folga para a granularidade do quadro, sem chegar perto de aceitar
+       * partida em bloco.
+       */
+      const intervalo = Math.max(...validas) - Math.min(...validas);
+      expect(
+        intervalo,
+        "as letras partiram todas juntas: o escalonamento sumiu",
+      ).toBeGreaterThanOrEqual(60);
+    }).toPass({ timeout: 25_000 });
   });
 
   // Controle da premissa acima: sem rolar, a marca não pode se mexer sozinha.

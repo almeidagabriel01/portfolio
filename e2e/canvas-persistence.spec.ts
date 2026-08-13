@@ -65,9 +65,34 @@ test.describe("Um canvas por campo (AD-047)", () => {
     await page.goBack();
     await page.waitForURL("/projetos");
     await expect(page.locator("canvas")).toHaveCount(1);
-    await page.waitForFunction(
-      () => (window.__campoRenderer?.info.render.frame ?? 0) > 5,
-    );
+    /**
+     * **O topo é premissa, não asserção.**
+     *
+     * Voltar restaura a posição de scroll, e o campo de `/projetos` mora no
+     * hero: numa restauração para o meio da página ele nasce **fora da tela**,
+     * onde não desenhar é exatamente o comportamento que o PORT-03 exige. A
+     * restauração é uma corrida com a montagem do campo (medido: ora y=0, ora
+     * y=930 no mesmo build), então o teste reprovava por um estado correto.
+     *
+     * Pôr o campo na tela antes de cobrar quadros mantém o que este teste quer
+     * provar — que depois do ciclo de rotas o campo volta a **desenhar**, e não
+     * fica preto — sem depender de quem ganha essa corrida.
+     */
+    await expect(async () => {
+      await page.evaluate(() =>
+        window.__lenis?.scrollTo(0, { immediate: true }),
+      );
+      const antes = await page.evaluate(
+        () => window.__campoRenderer?.info.render.frame ?? -1,
+      );
+      await page.waitForTimeout(300);
+      const depois = await page.evaluate(
+        () => window.__campoRenderer?.info.render.frame ?? -1,
+      );
+      expect(depois, "o campo não desenhou depois do ciclo de rotas").toBeGreaterThan(
+        antes,
+      );
+    }).toPass({ timeout: 15_000 });
   });
 
   /**

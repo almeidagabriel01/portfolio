@@ -1,6 +1,5 @@
 "use client";
 
-import { useFrame, useThree } from "@react-three/fiber";
 import { cubicBezier } from "motion/react";
 import {
   forwardRef,
@@ -9,16 +8,11 @@ import {
   useImperativeHandle,
   useMemo,
   useRef,
+  useState,
 } from "react";
-import * as THREE from "three";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { EASE } from "@/lib/motion";
-import {
-  blocosFragmentGLSL,
-  campoFragmentGLSL,
-  flowmapFragmentGLSL,
-  vertexGLSL,
-} from "./field.glsl";
+import { criarCampo, type CampoWebGL } from "./campo.webgl";
 
 export interface OpcoesDoCampo {
   /** Densidade da grelha. Maior = blocos **menores**. */
@@ -105,81 +99,47 @@ declare global {
      * medida.
      */
     __campo?: CampoHandle;
+    /**
+     * Seam de teste: o e2e conta frames reais para asserir que o loop parou.
+     * O formato é o que o renderer do three expunha, porque é o que os testes
+     * já liam — `info.render.frame` e `getPixelRatio()`.
+     */
+    __campoRenderer?: {
+      domElement: HTMLCanvasElement;
+      info: { render: { frame: number; calls: number } };
+      getPixelRatio(): number;
+    };
   }
 }
 
-/**
- * Um render target do tamanho do rastro, criado uma vez e descartado no
- * desmonte.
- *
- * **Isto era `useFBO` do drei, e a troca é de peso, não de estilo.** O `useFBO`
- * é a única coisa que o projeto ainda importava de `@react-three/drei`, e o
- * pacote não se deixa tree-shakear: o chunk do campo carregava a biblioteca
- * inteira por causa de um hook de dez linhas. Estas são as dez linhas.
- */
-function useAlvoDeRender(
-  tamanho: number,
-  opcoes: THREE.RenderTargetOptions,
-): THREE.WebGLRenderTarget {
-  /**
-   * Só na montagem, e as deps ficam de fora de propósito: `opcoes` é um literal
-   * do call site, recriado a cada render com o mesmo conteúdo, e incluí-lo
-   * criaria um render target novo por render — dois contextos de textura
-   * vazando por frame. O tamanho é constante.
-   */
-  const alvo = useMemo(
-    () => new THREE.WebGLRenderTarget(tamanho, tamanho, opcoes),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-  useEffect(() => () => alvo.dispose(), [alvo]);
-  return alvo;
-}
-
-/** Resolução do rastro. 256² é o suficiente: ele é borrado por natureza. */
-const RESOLUCAO_DO_FLUXO = 256;
-/**
- * O alvo do campo é redimensionado em degraus, não a cada pixel de grelha.
- *
- * A escala do hero é escrita a cada evento de scroll (0.41 → 1), e a grelha
- * acompanha: sem degrau, o alvo seria realocado ~60x/s durante a rolagem, que
- * é troca de textura na GPU por frame. Com degrau de 64 a rolagem inteira cabe
- * em uma dezena de realocações, ao custo de até 63 colunas de texels
- * calculados à toa — ~5% no hero.
- */
-const DEGRAU_DO_ALVO = 64;
-const emDegraus = (n: number) =>
-  Math.max(DEGRAU_DO_ALVO, Math.ceil(n / DEGRAU_DO_ALVO) * DEGRAU_DO_ALVO);
-/** Quanto do rastro sobrevive a cada frame. */
-const DISSIPACAO = 0.98;
-/** Raio do carimbo do cursor, em UV. */
-const RAIO = 0.15;
-/** O rastro perde 20% da velocidade por frame: é o que dá o rabo do cometa. */
-const AMORTECIMENTO = 0.8;
-
 interface Props {
   opcoes?: OpcoesDoCampo;
-  /** Liga o rastro do mouse. Custa dois render targets e um render por frame. */
+  /** Liga o rastro do mouse. Custa um render por frame e um `pointermove`. */
   usarMouse?: boolean;
   /** Elemento que define o retângulo do efeito, para mapear o ponteiro. */
   alvoDoPonteiro?: React.RefObject<HTMLElement | null>;
 }
 
+/**
+ * O campo de blocos: o `<canvas>` e a política de quadros.
+ *
+ * O desenho em si mora em `campo.webgl.ts`, sem React e sem motor 3D — ver lá o
+ * porquê. Aqui fica o que é do DOM e do ciclo de vida:
+ *
+ * - **quando desenhar.** Fora da tela ou com a aba oculta não se desenha nada;
+ *   sob movimento reduzido desenha-se **um** quadro e para, que deixa o campo
+ *   estático em vez de preto.
+ * - **o tamanho**, por `ResizeObserver`, sem passar por estado de React: o
+ *   AD-003 quer este componente fora do caminho de render, e o scroll muda o
+ *   retângulo o tempo todo.
+ * - **o ponteiro**, lido do retângulo do alvo a cada evento.
+ * - **a revelação**, que sobe o `brilho` do preto até ao valor calibrado.
+ */
 export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
-  function CampoDeBlocos(
-    { opcoes, usarMouse = false, alvoDoPonteiro },
-    referencia,
-  ) {
+  function CampoDeBlocos({ opcoes, usarMouse = false, alvoDoPonteiro }, ref) {
     const config = { ...CAMPO_PADRAO, ...opcoes };
-    /**
-     * Seletor por fatia, e não `useThree()` cru: sem seletor este componente
-     * assina o store inteiro e re-renderiza a cada mudança de estado do R3F —
-     * `frameloop` inclusive, que agora muda quando o campo entra e sai da tela.
-     * O AD-003 quer este componente **fora** do caminho de render.
-     */
-    const size = useThree((estado) => estado.size);
-    const viewport = useThree((estado) => estado.viewport);
-    const invalidate = useThree((estado) => estado.invalidate);
+    const canvas = useRef<HTMLCanvasElement>(null);
+    const campo = useRef<CampoWebGL | null>(null);
 
     // Efeito sem deps: roda depois de todo render. Ver o seam acima.
     useEffect(() => {
@@ -187,67 +147,122 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
       window.__campoRenders = (window.__campoRenders ?? 0) + 1;
     });
 
-    // ── Rastro do mouse ────────────────────────────────────────────────────
-    // Dois alvos em ping-pong. `HalfFloatType` porque a velocidade é assinada
-    // e satura feio em 8 bits.
-    const alvoA = useAlvoDeRender(RESOLUCAO_DO_FLUXO, {
-      type: THREE.HalfFloatType,
-      format: THREE.RGBAFormat,
-      minFilter: THREE.LinearFilter,
-      magFilter: THREE.LinearFilter,
-      depthBuffer: false,
-    });
-    const alvoB = useAlvoDeRender(RESOLUCAO_DO_FLUXO, {
-      type: THREE.HalfFloatType,
-      format: THREE.RGBAFormat,
-      minFilter: THREE.LinearFilter,
-      magFilter: THREE.LinearFilter,
-      depthBuffer: false,
-    });
-    const pingPong = useRef({ leitura: alvoA, escrita: alvoB });
-
-    const mouse = useRef(new THREE.Vector2(0.5, 0.5));
-    const mouseAnterior = useRef(new THREE.Vector2(0.5, 0.5));
-    const velocidade = useRef(new THREE.Vector2());
+    const reducedMotion = useReducedMotion();
 
     /**
-     * Cena privada para o rastro. Imperativa e não via `createPortal`: ela tem
-     * um objeto só, é renderizada à mão dentro do `useFrame`, e nunca precisa
-     * participar da árvore do React.
+     * As opções entram no renderizador **uma vez**, na criação. Depois disso
+     * quem muda valores é o handle, direto no uniform. Guardadas num ref para
+     * o efeito de criação não depender de um literal recriado a cada render —
+     * senão o contexto WebGL era destruído e recriado por render.
      */
-    const fluxo = useMemo(() => {
-      const cena = new THREE.Scene();
-      const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-      const material = new THREE.ShaderMaterial({
-        vertexShader: vertexGLSL,
-        fragmentShader: flowmapFragmentGLSL,
-        depthTest: false,
-        depthWrite: false,
-        uniforms: {
-          uAnterior: { value: null as THREE.Texture | null },
-          uMouse: { value: new THREE.Vector2(0.5, 0.5) },
-          uVelocidade: { value: new THREE.Vector2() },
-          uAspecto: { value: 1 },
-          uRaio: { value: RAIO },
-          uDissipacao: { value: DISSIPACAO },
-        },
+    const configInicial = useRef(config);
+
+    /**
+     * Sobe quando o contexto WebGL é restaurado, para reconstruir tudo.
+     *
+     * Perder o contexto é rotina (o SO reclama a GPU, a aba fica muito tempo em
+     * segundo plano), e o `webglcontextlost` **só permite restauro se for
+     * cancelado**. Sem cancelar, o canvas fica preto para sempre.
+     */
+    const [geracao, setGeracao] = useState(0);
+    /**
+     * Distingue "este efeito está a correr de novo porque o contexto voltou"
+     * de "o campo está a sair do DOM". Só no segundo caso o contexto é
+     * devolvido ao browser — ver `destruir`.
+     */
+    const restaurando = useRef(false);
+
+    useEffect(() => {
+      const elemento = canvas.current;
+      if (!elemento) return;
+
+      const aoPerder = (evento: Event) => evento.preventDefault();
+      const aoRestaurar = () => {
+        restaurando.current = true;
+        setGeracao((n) => n + 1);
+      };
+      elemento.addEventListener("webglcontextlost", aoPerder);
+      elemento.addEventListener("webglcontextrestored", aoRestaurar);
+
+      const atual = configInicial.current;
+      const renderizador = criarCampo(elemento, {
+        escala: atual.escala,
+        escalaDoCampo: atual.escalaDoCampo,
+        // Nasce preto quando há revelação: o loop sobe daqui até o valor
+        // calibrado. Sem revelação, entra já no valor final, como sempre.
+        brilho: atual.revelacao > 0 && !reducedMotion ? 0 : atual.brilho,
+        contraste: atual.contraste,
+        limiar: atual.limiar,
+        raioDaBorda: atual.raioDaBorda,
+        distorcao: atual.distorcao,
+        cor: atual.cor,
+        fundo: atual.fundo,
+        usarMouse,
       });
-      cena.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
-      return { cena, camera, material };
+      if (!renderizador) {
+        elemento.removeEventListener("webglcontextlost", aoPerder);
+        elemento.removeEventListener("webglcontextrestored", aoRestaurar);
+        return;
+      }
+      campo.current = renderizador;
+      if (process.env.NEXT_PUBLIC_E2E) window.__campoRenderer = renderizador;
+      /**
+       * Um quadro já, sem esperar pelo laço.
+       *
+       * É o que o `invalidate()` do invólucro anterior fazia na montagem e a
+       * cada mudança de tamanho: garante que o campo tem imagem mesmo antes de
+       * o observador de interseção se pronunciar, e que nunca existe um estado
+       * em que o canvas está montado e preto à espera de política.
+       */
+      renderizador.desenhar(0);
+
+      return () => {
+        elemento.removeEventListener("webglcontextlost", aoPerder);
+        elemento.removeEventListener("webglcontextrestored", aoRestaurar);
+        campo.current = null;
+        /**
+         * Só apaga o seam se ele ainda for **este** renderizador. Ao trocar de
+         * rota o campo novo monta antes de o antigo ser limpo, e um `delete`
+         * cego apagava o ponteiro que o novo acabara de escrever — o e2e ficava
+         * à espera de um renderer que existia.
+         */
+        if (process.env.NEXT_PUBLIC_E2E && window.__campoRenderer === renderizador) {
+          delete window.__campoRenderer;
+        }
+        /**
+         * Lido **aqui**, e não no corpo do efeito: quem marca o restauro é o
+         * evento, que chega depois de o efeito já ter corrido. Lendo o ref no
+         * corpo, a limpeza fechava sobre o valor da montagem (sempre falso) e
+         * o contexto acabado de restaurar era perdido de novo — o campo ficava
+         * preto e o `canvas-robustness` pegava.
+         */
+        const eraRestauro = restaurando.current;
+        restaurando.current = false;
+        renderizador.destruir(!eraRestauro);
+      };
+    }, [usarMouse, reducedMotion, geracao]);
+
+    // ── Tamanho ────────────────────────────────────────────────────────────
+    useEffect(() => {
+      const elemento = canvas.current;
+      if (!elemento) return;
+      const medir = () => {
+        const caixa = elemento.getBoundingClientRect();
+        campo.current?.definirTamanho(caixa.width, caixa.height);
+        // Redimensionar limpa o buffer: sem repintar, o campo pisca preto até
+        // ao próximo quadro do laço (e fica preto de vez se ele estiver parado).
+        campo.current?.desenhar(0);
+      };
+      medir();
+      const observador = new ResizeObserver(medir);
+      observador.observe(elemento);
+      return () => observador.disconnect();
     }, []);
 
-    useEffect(
-      () => () => {
-        fluxo.material.dispose();
-        fluxo.cena.traverse((no) => {
-          if (no instanceof THREE.Mesh) no.geometry.dispose();
-        });
-      },
-      [fluxo],
-    );
-
-    const aoMoverPonteiro = useCallback(
-      (evento: PointerEvent) => {
+    // ── Ponteiro ───────────────────────────────────────────────────────────
+    useEffect(() => {
+      if (!usarMouse) return;
+      const aoMover = (evento: PointerEvent) => {
         const alvo = alvoDoPonteiro?.current;
         if (!alvo) return;
         // Leitura de layout por evento de ponteiro. É barata porque nada muda
@@ -255,161 +270,130 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
         // mão sobre um retângulo memorizado, que é onde essa conta erra.
         const caixa = alvo.getBoundingClientRect();
         if (caixa.width === 0 || caixa.height === 0) return;
+        campo.current?.definirPonteiro(
+          (evento.clientX - caixa.left) / caixa.width,
+          1 - (evento.clientY - caixa.top) / caixa.height,
+        );
+      };
+      window.addEventListener("pointermove", aoMover, { passive: true });
+      return () => window.removeEventListener("pointermove", aoMover);
+    }, [usarMouse, alvoDoPonteiro]);
 
-        const x = (evento.clientX - caixa.left) / caixa.width;
-        const y = 1 - (evento.clientY - caixa.top) / caixa.height;
-
-        mouse.current.set(x, y);
-        velocidade.current
-          .subVectors(mouse.current, mouseAnterior.current)
-          .multiplyScalar(5);
-        mouseAnterior.current.copy(mouse.current);
-      },
-      [alvoDoPonteiro],
-    );
-
-    useEffect(() => {
-      if (!usarMouse) return;
-      window.addEventListener("pointermove", aoMoverPonteiro, {
-        passive: true,
-      });
-      return () => window.removeEventListener("pointermove", aoMoverPonteiro);
-    }, [usarMouse, aoMoverPonteiro]);
-
-    // ── Pass principal ─────────────────────────────────────────────────────
-    const material = useRef<THREE.ShaderMaterial>(null);
-
-    /**
-     * A revelação do campo, e por que ela é do `brilho` e não da opacidade.
-     *
-     * O campo entra **emergindo do preto**: os blocos vão cruzando o limiar até
-     * a cobertura calibrada, em vez de a camada inteira esmaecer. Esmaecer o
-     * canvas misturaria o campo com o que está por baixo e mudaria a
-     * composição; deslizar o `brilho` mantém o efeito de 1 bit exato em todo
-     * quadro — só há menos blocos acesos.
-     *
-     * Sob movimento reduzido não há revelação nenhuma, e não é só preferência:
-     * ali o `frameloop` é `demand`, um único quadro é desenhado, e uma rampa
-     * dependente de quadros congelaria o campo preto para sempre.
-     */
-    const reducedMotion = useReducedMotion();
-    const revelando = config.revelacao > 0 && !reducedMotion;
-    const revelado = useRef(!revelando);
+    // ── Política de quadros e revelação ────────────────────────────────────
     const suavizar = useMemo(() => cubicBezier(...EASE.OUT_EXPO), []);
 
     /**
-     * O alvo do campo: um texel por bloco, `NEAREST` nas duas pontas.
+     * **Um quadro avulso, e é o que o `invalidate()` do R3F fazia.**
      *
-     * Nasce mínimo e é dimensionado no primeiro frame, quando o tamanho do
-     * canvas e a escala corrente já são conhecidos. Filtro linear aqui
-     * desfaria o efeito: entre dois blocos vizinhos apareceria meia cor, e o
-     * campo é de 1 bit por definição.
+     * Sob movimento reduzido o laço não corre, mas o hero continua a escrever a
+     * escala do campo a cada evento de scroll. Sem repintar, essa escrita não
+     * chegava ao ecrã e o campo ficava congelado na densidade da montagem. Com
+     * o laço a correr não há nada a fazer: o quadro seguinte já leva o valor.
      */
-    const alvoDoCampo = useMemo(() => {
-      const alvo = new THREE.WebGLRenderTarget(
-        DEGRAU_DO_ALVO,
-        DEGRAU_DO_ALVO,
-        {
-          minFilter: THREE.NearestFilter,
-          magFilter: THREE.NearestFilter,
-          depthBuffer: false,
-          generateMipmaps: false,
-        },
-      );
-      return alvo;
-    }, []);
-    useEffect(() => () => alvoDoCampo.dispose(), [alvoDoCampo]);
-
-    /**
-     * A cena do passe de blocos. Imperativa pelo mesmo motivo da do rastro: um
-     * objeto só, renderizada à mão dentro do `useFrame`, nunca precisa
-     * participar da árvore do React.
-     *
-     * **Estes uniforms são os únicos que o cálculo lê.** O material da tela
-     * ficou com a cor, o recorte e o mapa de blocos; tudo que alimenta o ruído
-     * mora aqui, e é aqui que o handle imperativo escreve.
-     */
-    const blocos = useMemo(() => {
-      const cena = new THREE.Scene();
-      const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-      const material = new THREE.ShaderMaterial({
-        vertexShader: vertexGLSL,
-        fragmentShader: blocosFragmentGLSL,
-        depthTest: false,
-        depthWrite: false,
-        uniforms: {
-          uFlowmap: { value: null as THREE.Texture | null },
-          uBlocos: { value: new THREE.Vector2(1, 1) },
-          uDeslocamento: { value: new THREE.Vector2() },
-          uAspecto: { value: 1 },
-          uEscalaDoCampo: { value: config.escalaDoCampo },
-          // Nasce preto quando há revelação: o `useFrame` sobe daqui até o
-          // valor calibrado. Sem revelação, entra já no valor final.
-          uBrilho: { value: revelando ? 0 : config.brilho },
-          uContraste: { value: config.contraste },
-          uLimiar: { value: config.limiar },
-          uDistorcao: { value: config.distorcao },
-          uTempo: { value: 0 },
-        },
+    const emLaco = useRef(false);
+    const quadroPedido = useRef(0);
+    const pedirQuadro = useCallback(() => {
+      if (emLaco.current || quadroPedido.current) return;
+      quadroPedido.current = requestAnimationFrame(() => {
+        quadroPedido.current = 0;
+        campo.current?.desenhar(0);
       });
-      cena.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
-      return { cena, camera, material };
-      // Só na montagem: daqui em diante quem escreve nos uniforms é o
-      // `useFrame` e o handle imperativo (AD-003, nada disso passa por render).
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    useEffect(
-      () => () => {
-        blocos.material.dispose();
-        blocos.cena.traverse((no) => {
-          if (no instanceof THREE.Mesh) no.geometry.dispose();
-        });
-      },
-      [blocos],
-    );
+    useEffect(() => {
+      const elemento = canvas.current;
+      if (!elemento) return;
 
-    /**
-     * A escala vive num ref, e não num uniform, porque quem a consome é a
-     * **CPU**: é dela que sai a contagem de blocos, e a contagem tem de ser o
-     * mesmo float nos dois passes (ver `field.glsl.ts`). Calculá-la duas vezes
-     * em GLSL abriria a porta a um bloco de diferença no arredondamento.
-     */
-    const escala = useRef(config.escala);
+      let visivel = false;
+      let oculta = document.hidden;
+      let pedido = 0;
+      let ultimo = 0;
+      let tempo = 0;
+      const revelacao = configInicial.current.revelacao;
+      const brilhoFinal = configInicial.current.brilho;
+      let revelado = !(revelacao > 0) || reducedMotion;
 
-    const uniforms = useMemo(
-      () => ({
-        uCampo: { value: alvoDoCampo.texture },
-        uCor: { value: new THREE.Color(config.cor) },
-        uFundo: { value: new THREE.Color(config.fundo) },
-        uBlocos: { value: new THREE.Vector2(1, 1) },
-        uDeslocamento: { value: new THREE.Vector2() },
-        uTamanhoDoAlvo: { value: new THREE.Vector2(1, 1) },
-        uRaioDaBorda: { value: config.raioDaBorda },
-      }),
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      [],
-    );
+      const desenharUm = () => {
+        campo.current?.desenhar(0);
+      };
 
+      const laco = (agora: number) => {
+        const delta = ultimo ? (agora - ultimo) / 1000 : 0;
+        ultimo = agora;
+        if (delta > 0 && delta < 0.5) tempo += delta;
+
+        if (!revelado) {
+          const progresso = Math.min(1, tempo / revelacao);
+          campo.current?.definirBrilho(brilhoFinal * suavizar(progresso));
+          if (progresso >= 1) revelado = true;
+        }
+
+        campo.current?.desenhar(delta);
+        pedido = requestAnimationFrame(laco);
+      };
+
+      const avaliar = () => {
+        const deveCorrer = visivel && !oculta && !reducedMotion;
+        emLaco.current = deveCorrer;
+        if (deveCorrer && !pedido) {
+          ultimo = 0;
+          pedido = requestAnimationFrame(laco);
+        } else if (!deveCorrer && pedido) {
+          cancelAnimationFrame(pedido);
+          pedido = 0;
+        }
+        // Movimento reduzido: **um** quadro, para o campo ficar parado em vez
+        // de preto. `never` não desenharia nem esse.
+        if (!deveCorrer && visivel && !oculta && reducedMotion) desenharUm();
+      };
+
+      /**
+       * `rootMargin` de 200px: o campo volta a rodar um pouco antes de
+       * aparecer, então ninguém encontra um frame velho entrando pela borda.
+       */
+      const observador = new IntersectionObserver(
+        ([entrada]) => {
+          visivel = entrada.isIntersecting;
+          avaliar();
+        },
+        { rootMargin: "200px", threshold: 0 },
+      );
+      observador.observe(elemento);
+
+      const aoTrocarAba = () => {
+        oculta = document.hidden;
+        avaliar();
+      };
+      document.addEventListener("visibilitychange", aoTrocarAba);
+
+      return () => {
+        observador.disconnect();
+        document.removeEventListener("visibilitychange", aoTrocarAba);
+        emLaco.current = false;
+        if (pedido) cancelAnimationFrame(pedido);
+        if (quadroPedido.current) cancelAnimationFrame(quadroPedido.current);
+      };
+    }, [reducedMotion, suavizar]);
+
+    // ── Handle imperativo (AD-003) ─────────────────────────────────────────
     const handle = useMemo<CampoHandle>(
       () => ({
-        definirEscala(valor) {
-          escala.current = valor;
-          invalidate();
+        definirEscala: (valor) => {
+          campo.current?.definirEscala(valor);
+          pedirQuadro();
         },
-        definirBrilho(valor) {
-          blocos.material.uniforms.uBrilho.value = valor;
-          invalidate();
+        definirBrilho: (valor) => {
+          campo.current?.definirBrilho(valor);
+          pedirQuadro();
         },
-        definirEscalaDoCampo(valor) {
-          blocos.material.uniforms.uEscalaDoCampo.value = valor;
-          invalidate();
+        definirEscalaDoCampo: (valor) => {
+          campo.current?.definirEscalaDoCampo(valor);
+          pedirQuadro();
         },
       }),
-      [blocos, invalidate],
+      [pedirQuadro],
     );
-
-    useImperativeHandle(referencia, () => handle, [handle]);
+    useImperativeHandle(ref, () => handle, [handle]);
 
     useEffect(() => {
       if (!process.env.NEXT_PUBLIC_E2E) return;
@@ -419,115 +403,13 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
       };
     }, [handle]);
 
-    /**
-     * Relógio com guarda: delta ≥ 0.5s é descartado.
-     *
-     * Sem isso, voltar para a aba depois de um minuto entrega um delta enorme e
-     * o campo **salta** para outra configuração em um frame, em vez de
-     * continuar de onde parou.
-     */
-    const tempo = useRef(0);
-    const ultimoTique = useRef(0);
-
-    useFrame(({ gl, clock }) => {
-      const naTela = material.current;
-      if (!naTela) return;
-      const alvo = blocos.material;
-
-      const agora = clock.getElapsedTime();
-      const delta = agora - ultimoTique.current;
-      ultimoTique.current = agora;
-      if (delta > 0 && delta < 0.5) tempo.current += delta;
-      alvo.uniforms.uTempo.value = tempo.current;
-
-      // `tempo.current` só corre quando há quadros, então um campo que entra
-      // na tela mais tarde revela-se quando aparece, e não a meio.
-      if (!revelado.current) {
-        const progresso = Math.min(1, tempo.current / config.revelacao);
-        alvo.uniforms.uBrilho.value = config.brilho * suavizar(progresso);
-        if (progresso >= 1) revelado.current = true;
-      }
-
-      const aspecto = size.height > 0 ? size.width / size.height : 1;
-      alvo.uniforms.uAspecto.value = aspecto;
-      fluxo.material.uniforms.uAspecto.value = aspecto;
-
-      /**
-       * A grelha, calculada uma vez e distribuída aos dois passes. O `+2` é a
-       * folga do arredondamento: o id vai de `floor(-blocos/2)` a
-       * `ceil(blocos/2) - 1`, o que é um texel a mais que a parte inteira em
-       * cada ponta.
-       */
-      const porLado = Math.max(size.width, size.height) * escala.current;
-      const blocosX = porLado * aspecto;
-      alvo.uniforms.uBlocos.value.set(blocosX, porLado);
-      naTela.uniforms.uBlocos.value.copy(alvo.uniforms.uBlocos.value);
-
-      const larguraDoAlvo = emDegraus(Math.ceil(blocosX) + 2);
-      const alturaDoAlvo = emDegraus(Math.ceil(porLado) + 2);
-      if (
-        alvoDoCampo.width !== larguraDoAlvo ||
-        alvoDoCampo.height !== alturaDoAlvo
-      ) {
-        alvoDoCampo.setSize(larguraDoAlvo, alturaDoAlvo);
-      }
-      const deslocX = Math.floor(larguraDoAlvo / 2);
-      const deslocY = Math.floor(alturaDoAlvo / 2);
-      alvo.uniforms.uDeslocamento.value.set(deslocX, deslocY);
-
-      naTela.uniforms.uDeslocamento.value.set(deslocX, deslocY);
-      naTela.uniforms.uTamanhoDoAlvo.value.set(larguraDoAlvo, alturaDoAlvo);
-
-      // Salva e restaura: deixar o renderer apontando para um render target
-      // deixa a tela preta.
-      const alvoAnterior = gl.getRenderTarget();
-      const autoClearAnterior = gl.autoClear;
-      gl.autoClear = false;
-
-      if (usarMouse) {
-        const { leitura, escrita } = pingPong.current;
-        fluxo.material.uniforms.uAnterior.value = leitura.texture;
-        fluxo.material.uniforms.uMouse.value.copy(mouse.current);
-        fluxo.material.uniforms.uVelocidade.value.copy(velocidade.current);
-
-        gl.setRenderTarget(escrita);
-        gl.clear();
-        gl.render(fluxo.cena, fluxo.camera);
-
-        pingPong.current = { leitura: escrita, escrita: leitura };
-        alvo.uniforms.uFlowmap.value = escrita.texture;
-
-        velocidade.current.multiplyScalar(AMORTECIMENTO);
-      }
-
-      // O campo, um texel por bloco. É o único passe caro do frame, e é por
-      // isso que ele não roda na resolução da tela.
-      gl.setRenderTarget(alvoDoCampo);
-      gl.clear();
-      gl.render(blocos.cena, blocos.camera);
-
-      gl.setRenderTarget(alvoAnterior);
-      gl.autoClear = autoClearAnterior;
-    });
-
-    // O `<View>` reporta o tamanho do retângulo que ele segue; um frame único é
-    // pedido a cada mudança para o caso de `frameloop="demand"`.
-    useEffect(() => {
-      invalidate();
-    }, [invalidate, viewport.width, viewport.height]);
-
     return (
-      <mesh frustumCulled={false}>
-        <planeGeometry args={[2, 2]} />
-        <shaderMaterial
-          ref={material}
-          vertexShader={vertexGLSL}
-          fragmentShader={campoFragmentGLSL}
-          uniforms={uniforms}
-          depthTest={false}
-          depthWrite={false}
-        />
-      </mesh>
+      <canvas
+        ref={canvas}
+        aria-hidden
+        className="canvas-do-campo absolute inset-0"
+        style={{ pointerEvents: "none" }}
+      />
     );
   },
 );

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  blocosFragmentGLSL,
+  amostraFragmentGLSL,
   campoFragmentGLSL,
   flowmapFragmentGLSL,
   vertexGLSL,
@@ -10,8 +10,8 @@ import { noiseGLSL } from "./noise.glsl";
 const SHADERS = {
   vertexGLSL,
   flowmapFragmentGLSL,
-  blocosFragmentGLSL,
   campoFragmentGLSL,
+  amostraFragmentGLSL,
 };
 
 describe("shaders do campo", () => {
@@ -32,10 +32,23 @@ describe("shaders do campo", () => {
     expect(src).not.toContain("`");
   });
 
-  it("o pass do campo traz o ruído interpolado, não a chamada solta", () => {
-    expect(blocosFragmentGLSL).toContain("float fbm3(");
-    expect(blocosFragmentGLSL).toContain("float simplex3(");
+  it("o campo traz o ruído interpolado, não a chamada solta", () => {
+    expect(campoFragmentGLSL).toContain("float fbm3(");
+    expect(campoFragmentGLSL).toContain("float simplex3(");
     expect(noiseGLSL.length).toBeGreaterThan(500);
+  });
+
+  /**
+   * Os dois regimes são o **mesmo** cálculo com o id do bloco vindo de sítios
+   * diferentes, e por isso vivem num programa só: um lê `gl_FragCoord` (um
+   * texel por bloco), o outro o `vUv` (um pixel de cada vez). Separá-los em
+   * dois shaders traria de volta o custo de compilar o segundo no meio da
+   * rolagem — 566 ms medidos.
+   */
+  it("os dois regimes cabem num shader só, atrás de uDireto", () => {
+    expect(campoFragmentGLSL).toContain("floor(gl_FragCoord.xy) - uDeslocamento");
+    expect(campoFragmentGLSL).toContain("floor((vUv - 0.5) * uBlocos)");
+    expect(campoFragmentGLSL).toContain("uDireto");
   });
 
   /**
@@ -45,9 +58,9 @@ describe("shaders do campo", () => {
    * sem que nada quebre visualmente — defeito que só um contador de fps pega.
    */
   it("o pass da tela só amostra o alvo", () => {
-    expect(campoFragmentGLSL).not.toContain("simplex3(");
-    expect(campoFragmentGLSL).not.toContain("fbm3(");
-    expect(campoFragmentGLSL).toContain("texture2D(uCampo,");
+    expect(amostraFragmentGLSL).not.toContain("simplex3(");
+    expect(amostraFragmentGLSL).not.toContain("fbm3(");
+    expect(amostraFragmentGLSL).toContain("texture2D(uCampo,");
   });
 
   // Todo uniform declarado tem que ser escrito por alguém; um uniform órfão é
@@ -56,7 +69,7 @@ describe("shaders do campo", () => {
     const uniformsDe = (src: string) =>
       new Set([...src.matchAll(/uniform\s+\w+\s+(u\w+);/g)].map((m) => m[1]));
 
-    expect(uniformsDe(blocosFragmentGLSL)).toEqual(
+    expect(uniformsDe(campoFragmentGLSL)).toEqual(
       new Set([
         "uFlowmap",
         "uBlocos",
@@ -68,10 +81,14 @@ describe("shaders do campo", () => {
         "uLimiar",
         "uDistorcao",
         "uTempo",
+        "uCor",
+        "uFundo",
+        "uRaioDaBorda",
+        "uDireto",
       ]),
     );
 
-    expect(uniformsDe(campoFragmentGLSL)).toEqual(
+    expect(uniformsDe(amostraFragmentGLSL)).toEqual(
       new Set([
         "uCampo",
         "uCor",
@@ -91,7 +108,7 @@ describe("shaders do campo", () => {
    * reabriria a porta ao bloco de diferença por arredondamento.
    */
   it("os dois passes derivam a grelha dos mesmos uniforms", () => {
-    for (const src of [blocosFragmentGLSL, campoFragmentGLSL]) {
+    for (const src of [campoFragmentGLSL, amostraFragmentGLSL]) {
       expect(src).toContain("uBlocos");
       expect(src).toContain("uDeslocamento");
       expect(src).not.toContain("uResolucao");
@@ -102,7 +119,7 @@ describe("shaders do campo", () => {
   it("o corte de 1 bit é um step, não um smoothstep", () => {
     // A aresta dura do bloco é o efeito. Um `smoothstep` aqui devolveria
     // gradação e o campo deixaria de ler como dither.
-    expect(blocosFragmentGLSL).toContain("step(uLimiar,");
-    expect(blocosFragmentGLSL).not.toContain("smoothstep(uLimiar");
+    expect(campoFragmentGLSL).toContain("step(uLimiar,");
+    expect(campoFragmentGLSL).not.toContain("smoothstep(uLimiar");
   });
 });

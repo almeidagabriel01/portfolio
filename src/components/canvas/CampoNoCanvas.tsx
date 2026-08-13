@@ -11,10 +11,11 @@ import { CanvasDoCampo } from "./CanvasDoCampo";
  * O campo dentro do seu canvas — o par que as três seções da home montavam à
  * mão.
  *
- * Existe como módulo próprio para dar ao `next/dynamic` um alvo: é **daqui**
- * que o three.js pende (`CampoDeBlocos` faz `import * as THREE`), e um módulo
- * separado é o que permite ao bundler pôr esse megabyte num chunk à parte. Ver
- * `Campo.tsx` para o porquê.
+ * Existiu como módulo próprio para dar ao `next/dynamic` um alvo: era daqui
+ * que o three.js pendia, e o chunk à parte era o que tirava esse megabyte do
+ * caminho da hidratação. O campo hoje é WebGL2 direto e cabe em poucos kB, mas
+ * a camada fica: é o sítio onde os três call sites concordam sobre o que um
+ * campo é. Ver `Campo.tsx`.
  *
  * **O handle vem por prop normal, não por `ref`.** O `next/dynamic` não
  * encaminha `ref` para o componente carregado, e o `Hero` precisa do handle
