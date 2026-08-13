@@ -142,10 +142,16 @@ export const ptBR = {
   rotas: {
     projetos: {
       rotulo: "Projetos",
+      /**
+       * Não repetem o que a página já diz: o rótulo da lista é "Sete projetos,
+       * todos com case escrito" e o título dela é "Nenhum deles começou
+       * pronto". Falar de contagem ou de case aqui era ler a mesma frase duas
+       * vezes com uma rolagem de distância.
+       */
       frases: [
-        "Sete projetos *no ar*",
-        "Cada um com *case escrito*",
-        "Do escopo ao *deploy*",
+        "Trabalho *publicado*",
+        "Cada escolha tem *motivo*",
+        "Feito para *uso real*",
       ],
     },
     sobre: {
@@ -386,9 +392,9 @@ export const enUS = {
     projetos: {
       rotulo: "Projects",
       frases: [
-        "Seven projects *shipped*",
-        "Each one with a *written case*",
-        "From scoping to *deploy*",
+        "Published *work*",
+        "Every choice has a *reason*",
+        "Made for *real use*",
       ],
     },
     sobre: {
