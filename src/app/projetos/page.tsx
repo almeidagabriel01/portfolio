@@ -18,8 +18,15 @@ export default function ProjetosPage() {
 
   return (
     <main className="relative z-200 flex flex-col gap-100 md:gap-200">
-      {/* Reaproveita as frases da home; por isso, sem `frases`. */}
-      <Hero rotulo={t.rotas.projetos.rotulo} />
+      {/*
+        Frases próprias da rota. Herdar as da home punha "Eu sou Gabriel Dias"
+        no topo de duas páginas seguidas, com o mesmo molde de hero: lia como a
+        home carregada de novo.
+      */}
+      <Hero
+        rotulo={t.rotas.projetos.rotulo}
+        frases={t.rotas.projetos.frases}
+      />
       <ListaDeProjetos />
       <StackTransversal projects={portfolioProjects} />
     </main>

@@ -130,15 +130,24 @@ export const ptBR = {
     },
   },
   /**
-   * O hero das rotas internas. Cada rota tem o seu rótulo; conjunto de frases
-   * próprio, só quem precisa: `projetos` herda o da home (por isso não tem
-   * `frases`) e `sobre` fala de quem escreve.
+   * O hero das rotas internas. **Cada rota tem o seu conjunto de frases**, e
+   * isso não é enfeite: as três rotas abrem com o mesmo molde de hero, então
+   * repetir as frases da home fazia `/projetos` ler como a home outra vez.
+   * Aqui a rota fala do que ela lista (trabalho publicado), e `sobre` de quem
+   * escreve.
    *
    * Frase curta é requisito: cada palavra entra com 0,3s de atraso sobre a
    * anterior, e o ciclo vira em 5s.
    */
   rotas: {
-    projetos: { rotulo: "Projetos" },
+    projetos: {
+      rotulo: "Projetos",
+      frases: [
+        "Sete projetos *no ar*",
+        "Cada um com *case escrito*",
+        "Do escopo ao *deploy*",
+      ],
+    },
     sobre: {
       rotulo: "Sobre",
       frases: [
@@ -374,7 +383,14 @@ export const enUS = {
     },
   },
   rotas: {
-    projetos: { rotulo: "Projects" },
+    projetos: {
+      rotulo: "Projects",
+      frases: [
+        "Seven projects *shipped*",
+        "Each one with a *written case*",
+        "From scoping to *deploy*",
+      ],
+    },
     sobre: {
       rotulo: "About",
       frases: [
