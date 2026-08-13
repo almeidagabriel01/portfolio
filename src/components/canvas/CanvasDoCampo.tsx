@@ -216,6 +216,28 @@ export function CanvasDoCampo({ children }: { children: ReactNode }) {
         shadows={false}
         eventPrefix="client"
         /**
+         * **Sem MSAA, sem depth, sem stencil — e nenhum dos três muda um
+         * pixel.**
+         *
+         * O R3F liga `antialias` por default. Aqui não há uma única aresta de
+         * geometria dentro da tela para ele suavizar: a cena é um quad que
+         * cobre o canvas inteiro, e a única borda desenhada é a do recorte
+         * arredondado, que sai de `discard` — e `discard` mata todas as
+         * amostras do fragmento, então o MSAA nunca a tocou. O que ele fazia
+         * era multiplicar por quatro as amostras do framebuffer e cobrar um
+         * resolve por frame.
+         *
+         * `depth` e `stencil` seguem o mesmo raciocínio: todo material do
+         * campo desliga `depthTest` e `depthWrite`, então os buffers eram
+         * alocados e limpos a cada frame sem nunca serem lidos.
+         *
+         * Medido em GPU por software, 1350×940: a dpr 2 o campo passa de 20,5
+         * para 45,2 fps; a dpr 1 o frame cai de 18,6 ms para 11,3 ms e a
+         * ocupação da main thread de 100% para 68%. A captura não mudou um
+         * pixel (39 divergentes num piso de ruído de 31).
+         */
+        gl={{ antialias: false, depth: false, stencil: false }}
+        /**
          * **`scroll: false`, e sem isto o refactor custaria caro.**
          *
          * O default do R3F remede o canvas a cada scroll, porque `size` carrega

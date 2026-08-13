@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  blocosFragmentGLSL,
   campoFragmentGLSL,
   flowmapFragmentGLSL,
   vertexGLSL,
 } from "./field.glsl";
 import { noiseGLSL } from "./noise.glsl";
 
-const SHADERS = { vertexGLSL, flowmapFragmentGLSL, campoFragmentGLSL };
+const SHADERS = {
+  vertexGLSL,
+  flowmapFragmentGLSL,
+  blocosFragmentGLSL,
+  campoFragmentGLSL,
+};
 
 describe("shaders do campo", () => {
   /**
@@ -26,42 +32,77 @@ describe("shaders do campo", () => {
     expect(src).not.toContain("`");
   });
 
-  it("o pass principal traz o ruído interpolado, não a chamada solta", () => {
-    expect(campoFragmentGLSL).toContain("float fbm3(");
-    expect(campoFragmentGLSL).toContain("float simplex3(");
+  it("o pass do campo traz o ruído interpolado, não a chamada solta", () => {
+    expect(blocosFragmentGLSL).toContain("float fbm3(");
+    expect(blocosFragmentGLSL).toContain("float simplex3(");
     expect(noiseGLSL.length).toBeGreaterThan(500);
+  });
+
+  /**
+   * **O pass da tela não pode ter ruído nenhum.** É o ponto inteiro da
+   * separação: o cálculo caro corre uma vez por bloco, no alvo, e a tela só
+   * amostra. Uma chamada de ruído que reapareça aqui devolve o custo por pixel
+   * sem que nada quebre visualmente — defeito que só um contador de fps pega.
+   */
+  it("o pass da tela só amostra o alvo", () => {
+    expect(campoFragmentGLSL).not.toContain("simplex3(");
+    expect(campoFragmentGLSL).not.toContain("fbm3(");
+    expect(campoFragmentGLSL).toContain("texture2D(uCampo,");
   });
 
   // Todo uniform declarado tem que ser escrito por alguém; um uniform órfão é
   // valor morto que o driver otimiza fora e que engana quem lê o código.
   it("declara exatamente os uniforms que o componente alimenta", () => {
-    const declarados = [
-      ...campoFragmentGLSL.matchAll(/uniform\s+\w+\s+(u\w+);/g),
-    ].map((m) => m[1]);
+    const uniformsDe = (src: string) =>
+      new Set([...src.matchAll(/uniform\s+\w+\s+(u\w+);/g)].map((m) => m[1]));
 
-    expect(new Set(declarados)).toEqual(
+    expect(uniformsDe(blocosFragmentGLSL)).toEqual(
       new Set([
         "uFlowmap",
-        "uCor",
-        "uFundo",
-        "uResolucao",
+        "uBlocos",
+        "uDeslocamento",
         "uAspecto",
-        "uEscala",
         "uEscalaDoCampo",
         "uBrilho",
         "uContraste",
         "uLimiar",
-        "uRaioDaBorda",
         "uDistorcao",
         "uTempo",
       ]),
     );
+
+    expect(uniformsDe(campoFragmentGLSL)).toEqual(
+      new Set([
+        "uCampo",
+        "uCor",
+        "uFundo",
+        "uBlocos",
+        "uDeslocamento",
+        "uTamanhoDoAlvo",
+        "uRaioDaBorda",
+      ]),
+    );
+  });
+
+  /**
+   * A grelha é ancorada no centro e o número de blocos é fracionário, então o
+   * mapa id→texel só coincide se os dois passes usarem **o mesmo** `uBlocos` e
+   * o mesmo `uDeslocamento`. Calcular a contagem em GLSL dos dois lados
+   * reabriria a porta ao bloco de diferença por arredondamento.
+   */
+  it("os dois passes derivam a grelha dos mesmos uniforms", () => {
+    for (const src of [blocosFragmentGLSL, campoFragmentGLSL]) {
+      expect(src).toContain("uBlocos");
+      expect(src).toContain("uDeslocamento");
+      expect(src).not.toContain("uResolucao");
+      expect(src).not.toContain("uEscala;");
+    }
   });
 
   it("o corte de 1 bit é um step, não um smoothstep", () => {
     // A aresta dura do bloco é o efeito. Um `smoothstep` aqui devolveria
     // gradação e o campo deixaria de ler como dither.
-    expect(campoFragmentGLSL).toContain("step(uLimiar,");
-    expect(campoFragmentGLSL).not.toContain("smoothstep(uLimiar");
+    expect(blocosFragmentGLSL).toContain("step(uLimiar,");
+    expect(blocosFragmentGLSL).not.toContain("smoothstep(uLimiar");
   });
 });

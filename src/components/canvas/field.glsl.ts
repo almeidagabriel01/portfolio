@@ -25,6 +25,25 @@ import { noiseGLSL } from "./noise.glsl";
  * mesmo resultado que distorcer `blockUv` e amostrar o campo, com um render
  * target a menos. Os passes 2 e 3 estão fundidos aqui.
  *
+ * ### Por que o cálculo mora num alvo do tamanho da grelha
+ *
+ * Os passos 2 a 8 dependem **só** do `idDoBloco`: quantizado o UV, nada mais na
+ * cadeia lê a posição do pixel. Rodá-los no framebuffer da tela é recalcular o
+ * mesmo número uma vez por pixel do bloco — e o número custa **sete** ruídos
+ * simplex, ~84 `sin` cada bloco.
+ *
+ * Então o campo é desenhado num render target de **um texel por bloco**
+ * (`blocosFragmentGLSL`) e a tela só amostra esse alvo em `NEAREST`
+ * (`campoFragmentGLSL`). A saída é a mesma imagem, bit a bit: os dois passes
+ * derivam o `idDoBloco` da mesma aritmética e o mapa id→texel é inteiro, então
+ * cada pixel lê exatamente o bloco que ele próprio teria calculado.
+ *
+ * O ganho é a razão pixels/blocos: no hero são ~3 pixels por bloco a dpr 1 e
+ * ~12 a dpr 2. Medido em GPU por software (que é o que o PageSpeed tem),
+ * 1350×940 a dpr 2: **9,9 → 20,5 fps**, e o bloqueio da main thread em 8 s de
+ * animação cai de **4.024 ms para 23 ms** — que é o que o TBT do desktop
+ * media. Desligar o MSAA (ver `CanvasDoCampo`) leva os mesmos 8 s a 45 fps.
+ *
  * **E nada de foto.** O caminho óbvio para este efeito amostra uma textura
  * fotográfica, mas não é preciso: `saturation` é `0` em
  * todos os call sites, o que colapsaria a foto a **luminância pura** antes do
@@ -86,44 +105,34 @@ void main() {
 `;
 
 /**
- * O pass principal.
+ * O pass do campo, **um texel por bloco**.
  *
  * Constantes vindas: limiar `0.56`, brilho `0.73`, contraste
  * `2.91`, saturação `0`, e `blocos = max(resolucao) * uEscala` com
- * `blocos.x *= aspecto`.
+ * `blocos.x *= aspecto` — a conta que o componente faz na CPU e entrega em
+ * `uBlocos`, para que os dois passes usem **o mesmo float**.
+ *
+ * O alvo é maior que a grelha (arredondado para cima), então há texels de
+ * borda cujo `idDoBloco` cai fora do intervalo desenhado. Eles calculam um
+ * bloco que ninguém lê: sai mais barato do que um `discard` por texel.
  */
-export const campoFragmentGLSL = /* glsl */ `
+export const blocosFragmentGLSL = /* glsl */ `
 precision highp float;
 
 uniform sampler2D uFlowmap;
 
-uniform vec3 uCor;
-uniform vec3 uFundo;
-
-uniform vec2 uResolucao;
+uniform vec2 uBlocos;
+uniform vec2 uDeslocamento;
 uniform float uAspecto;
 
-uniform float uEscala;
 uniform float uEscalaDoCampo;
 uniform float uBrilho;
 uniform float uContraste;
 uniform float uLimiar;
-uniform float uRaioDaBorda;
 uniform float uDistorcao;
 uniform float uTempo;
 
-varying vec2 vUv;
-
 ${noiseGLSL}
-
-/**
- * SDF de retângulo arredondado, centrado na origem. Negativo dentro.
- * Formulação padrão de Inigo Quilez.
- */
-float caixaArredondada(vec2 p, vec2 meiaExtensao, float raio) {
-  vec2 d = abs(p) - meiaExtensao + raio;
-  return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - raio;
-}
 
 /** Mesmo folclore de hash já usado em noise.glsl.ts, um valor por bloco. */
 float hashDoBloco(vec2 p) {
@@ -131,19 +140,12 @@ float hashDoBloco(vec2 p) {
 }
 
 void main() {
-  // 1. Recorte arredondado. O hero usa raio 0 (retângulo cheio); o painel da
-  //    seção de abordagem usa raio pequeno.
-  float dentro = caixaArredondada(vUv - 0.5, vec2(0.5), uRaioDaBorda);
-  if (dentro > 0.0) discard;
-
   // 2. Grelha de blocos, ancorada no centro para que mudar a escala não
-  //    deslize o padrão lateralmente.
-  float blocosPorLado = max(uResolucao.x, uResolucao.y) * uEscala;
-  vec2 blocos = vec2(blocosPorLado);
-  blocos.x *= uAspecto;
-
-  vec2 centrado = vUv - 0.5;
-  vec2 idDoBloco = floor(centrado * blocos);
+  //    deslize o padrão lateralmente. O texel **é** o bloco: o deslocamento
+  //    inteiro leva o id (que é negativo à esquerda do centro) para dentro do
+  //    alvo, e o pass da tela desfaz exatamente a mesma soma.
+  vec2 blocos = uBlocos;
+  vec2 idDoBloco = floor(gl_FragCoord.xy) - uDeslocamento;
   vec2 uvDoBloco = idDoBloco / blocos + 0.5;
 
   // 3. Rastro do mouse: desloca o bloco e guarda a força para clarear depois.
@@ -205,6 +207,63 @@ void main() {
 
   // 8. Um bit. Sem antisserrilhado: a aresta dura do bloco é o efeito.
   float aceso = step(uLimiar, valor);
+
+  // Só o bit. A cor é aplicada na tela, e guardar 0/1 num alvo de 8 bits
+  // sobrevive à ida e volta sem depender de espaço de cor nenhum.
+  gl_FragColor = vec4(aceso);
+}
+`;
+
+/**
+ * O pass da tela: recorte arredondado e uma amostra `NEAREST` por pixel.
+ *
+ * Refaz a quantização do UV — dez operações — em vez de esticar a textura, e é
+ * o que garante a coincidência exata: a grelha é ancorada no **centro** e o
+ * número de blocos é fracionário, então um blit esticado deslizaria meio bloco
+ * nas bordas. Aqui cada pixel calcula o próprio `idDoBloco` com o mesmo
+ * `uBlocos` do outro passe e lê o texel que lhe corresponde.
+ *
+ * **Medido antes de escrever assim.** A variante que passava a conta para o
+ * vertex (transformação afim do UV + `NEAREST`) é algebricamente a mesma e não
+ * mudou um frame por segundo: este passe é limitado por preenchimento, não por
+ * aritmética. O que ela mudou foi o resultado — 1.690 pixels de borda de bloco
+ * caindo no texel vizinho por erro de float, contra 42 desta. Custo igual,
+ * exatidão pior: ficou a conta por pixel.
+ */
+export const campoFragmentGLSL = /* glsl */ `
+precision highp float;
+
+uniform sampler2D uCampo;
+
+uniform vec3 uCor;
+uniform vec3 uFundo;
+
+uniform vec2 uBlocos;
+uniform vec2 uDeslocamento;
+uniform vec2 uTamanhoDoAlvo;
+uniform float uRaioDaBorda;
+
+varying vec2 vUv;
+
+/**
+ * SDF de retângulo arredondado, centrado na origem. Negativo dentro.
+ * Formulação padrão de Inigo Quilez.
+ */
+float caixaArredondada(vec2 p, vec2 meiaExtensao, float raio) {
+  vec2 d = abs(p) - meiaExtensao + raio;
+  return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - raio;
+}
+
+void main() {
+  // 1. Recorte arredondado. O hero usa raio 0 (retângulo cheio); o painel da
+  //    seção de abordagem usa raio pequeno.
+  float dentro = caixaArredondada(vUv - 0.5, vec2(0.5), uRaioDaBorda);
+  if (dentro > 0.0) discard;
+
+  vec2 idDoBloco = floor((vUv - 0.5) * uBlocos);
+  vec2 uv = (idDoBloco + uDeslocamento + 0.5) / uTamanhoDoAlvo;
+
+  float aceso = texture2D(uCampo, uv).r;
 
   gl_FragColor = vec4(mix(uFundo, uCor, aceso), 1.0);
 }
