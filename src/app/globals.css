@@ -459,18 +459,23 @@ button {
 }
 
 /*
- * 1,4s e não 2s, e o número tem uma razão medida.
+ * 0,9s de duração e 0,15s de atraso por palavra, e os dois números foram
+ * medidos, não escolhidos.
  *
- * Esta palavra é o elemento do LCP no celular, e o LCP só é registado quando a
- * entrada dela termina: com 2s de duração mais o atraso de 0,6s da palavra
- * destacada, o LCP ficava preso em ~2,6s — do lado errado do corte de 2,5s do
- * Lighthouse. A curva, o atraso, o blur e a escala continuam os mesmos; o que
- * mudou é onde ela acaba. Quem mexer aqui mexe também em `DURACAO`, no
- * `PalavrasQueEntram`: é a mesma entrada por dois caminhos (CSS na primeira
+ * **Esta palavra é o elemento do LCP no celular**, e o Chrome só a conta
+ * quando a animação de opacidade dela **termina** — o mesmo vale para o
+ * `<h1>`, que vira candidato ao fim dos seus 0,5s. Medido em navegador: o LCP
+ * cai exatamente em `FCP + atraso + duração`. Com 2s de duração e 0,6s de
+ * atraso na palavra destacada, isso dava 3,6s no PageSpeed, contra um corte de
+ * 2,5s.
+ *
+ * A curva, o blur, a escala e o escalonamento continuam os mesmos; o que mudou
+ * é o relógio. Quem mexer aqui mexe também em `DURACAO` e `ATRASO_POR_PALAVRA`,
+ * no `PalavrasQueEntram`: é a mesma entrada por dois caminhos (CSS na primeira
  * pintura, motion nas rotações seguintes).
  */
 .entrada-da-palavra {
-  animation: entrada-da-palavra 1.4s cubic-bezier(0.19, 1, 0.22, 1) backwards;
+  animation: entrada-da-palavra 0.9s cubic-bezier(0.19, 1, 0.22, 1) backwards;
 }
 
 /**

@@ -46,9 +46,9 @@ import { separarPalavras } from "@/lib/texto";
  * voltam ao estado inicial e a frase nova entra com o mesmo escalonamento.
  */
 
-// Espelha `.entrada-da-palavra` em globals.css — ver o porquê de 1,4s lá.
-const DURACAO = 1.4;
-const ATRASO_POR_PALAVRA = 0.3;
+// Espelham `.entrada-da-palavra` em globals.css — ver lá o porquê dos números.
+const DURACAO = 0.9;
+const ATRASO_POR_PALAVRA = 0.15;
 /** O fade do título, tanto na saída como na entrada. */
 const DURACAO_DO_TITULO = 0.5;
 
