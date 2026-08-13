@@ -172,6 +172,45 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
      */
     const restaurando = useRef(false);
 
+    /**
+     * **O contexto só nasce quando o campo se aproxima da tela.**
+     *
+     * Os três campos da home montavam juntos, no carregamento, e criar um
+     * custa caro onde não há GPU: são dois programas com sete ruídos simplex
+     * cada, e o SwiftShader traduz isso na main thread. Medido a 4x de CPU,
+     * 1350×940: a home bloqueava **323 ms** contra 86 ms de `/projetos`, que
+     * tem um campo só — e dois dos três nem estavam na tela.
+     *
+     * A margem é maior que a do laço de quadros (200px): a criação tem de
+     * estar pronta **antes** de o campo precisar desenhar, senão a compilação
+     * cai no meio da rolagem. Uma vez criado, não se desfaz — quem decide se
+     * desenha continua sendo a política de quadros.
+     *
+     * O `<canvas>` em si é renderizado desde sempre: adiar o elemento mudaria
+     * o layout, e o que é caro é o contexto, não o nó.
+     */
+    /**
+     * **O contexto só nasce quando o campo se aproxima da tela — e sem passar
+     * por estado de React.**
+     *
+     * Os três campos da home nasciam juntos, no carregamento, e criar um custa
+     * caro onde não há GPU: são dois programas com sete ruídos simplex cada, e
+     * o SwiftShader traduz isso na main thread. Medido a 4x de CPU, 1350×940:
+     * a home bloqueava **323 ms** contra 86 ms de `/projetos`, que tem um
+     * campo só — e dois dos três nem estavam na tela.
+     *
+     * **Um `useState` aqui seria o defeito que o AD-003 proíbe**: `setPerto`
+     * ao rolar é um render do campo por seção que entra, e o sensor de
+     * `performance.spec` pega. Por isso o observador chama `criar()` direto, e
+     * o que sobrevive entre execuções do efeito é um ref.
+     *
+     * A margem é maior que a do laço de quadros (200px): a criação tem de
+     * estar pronta **antes** de o campo precisar desenhar, senão a compilação
+     * cai no meio da rolagem. O `<canvas>` em si é renderizado desde sempre —
+     * adiar o elemento mudaria o layout, e o que é caro é o contexto.
+     */
+    const jaNasceu = useRef(false);
+
     useEffect(() => {
       const elemento = canvas.current;
       if (!elemento) return;
@@ -184,49 +223,77 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
       elemento.addEventListener("webglcontextlost", aoPerder);
       elemento.addEventListener("webglcontextrestored", aoRestaurar);
 
-      const atual = configInicial.current;
-      const renderizador = criarCampo(elemento, {
-        escala: atual.escala,
-        escalaDoCampo: atual.escalaDoCampo,
-        // Nasce preto quando há revelação: o loop sobe daqui até o valor
-        // calibrado. Sem revelação, entra já no valor final, como sempre.
-        brilho: atual.revelacao > 0 && !reducedMotion ? 0 : atual.brilho,
-        contraste: atual.contraste,
-        limiar: atual.limiar,
-        raioDaBorda: atual.raioDaBorda,
-        distorcao: atual.distorcao,
-        cor: atual.cor,
-        fundo: atual.fundo,
-        usarMouse,
-      });
-      if (!renderizador) {
+      let renderizador: CampoWebGL | null = null;
+      let observador: IntersectionObserver | null = null;
+
+      const criar = () => {
+        const atual = configInicial.current;
+        renderizador = criarCampo(elemento, {
+          escala: atual.escala,
+          escalaDoCampo: atual.escalaDoCampo,
+          // Nasce preto quando há revelação: o loop sobe daqui até o valor
+          // calibrado. Sem revelação, entra já no valor final, como sempre.
+          brilho: atual.revelacao > 0 && !reducedMotion ? 0 : atual.brilho,
+          contraste: atual.contraste,
+          limiar: atual.limiar,
+          raioDaBorda: atual.raioDaBorda,
+          distorcao: atual.distorcao,
+          cor: atual.cor,
+          fundo: atual.fundo,
+          usarMouse,
+        });
         /**
-         * **Os ouvintes ficam.** Devolver `null` aqui é "não deu **agora**" —
-         * contexto perdido, ou o browser no teto de contextos vivos. Tirando
-         * os ouvintes, o `webglcontextrestored` que viesse a seguir não
-         * encontrava ninguém e o campo ficava preto para sempre. Só o
-         * desmonte os remove, na limpeza abaixo.
+         * Devolver `null` é "não deu **agora**" — contexto perdido, ou o
+         * browser no teto de contextos vivos. Os ouvintes ficam: sem eles, o
+         * `webglcontextrestored` seguinte não encontrava ninguém e o campo
+         * ficava preto para sempre.
          */
-        return () => {
-          elemento.removeEventListener("webglcontextlost", aoPerder);
-          elemento.removeEventListener("webglcontextrestored", aoRestaurar);
-        };
+        if (!renderizador) return;
+        campo.current = renderizador;
+        jaNasceu.current = true;
+        if (process.env.NEXT_PUBLIC_E2E) window.__campoRenderer = renderizador;
+
+        /**
+         * **O tamanho antes do primeiro quadro.** O efeito que segue o
+         * retângulo (abaixo) já correu quando o campo nasce mais tarde, e ele
+         * escreve num `campo.current` que ainda era nulo: o renderizador
+         * ficava no tamanho mínimo, `1×1`, e pintava um pixel. Sem erro
+         * nenhum — só um campo que some, que foi como o teste de contraste da
+         * home pegou ("o campo de partículas não estava pintando").
+         */
+        const caixa = elemento.getBoundingClientRect();
+        renderizador.definirTamanho(caixa.width, caixa.height);
+
+        /**
+         * Um quadro já, sem esperar pelo laço: o campo tem imagem mesmo antes
+         * de a política de quadros se pronunciar, e nunca existe um estado em
+         * que o canvas está montado e preto à espera dela.
+         */
+        renderizador.desenhar(0);
+      };
+
+      if (jaNasceu.current) {
+        // Já houve contexto neste canvas: um restauro não espera por
+        // interseção nenhuma, o campo está à vista.
+        criar();
+      } else {
+        observador = new IntersectionObserver(
+          ([entrada]) => {
+            if (!entrada.isIntersecting) return;
+            observador?.disconnect();
+            observador = null;
+            criar();
+          },
+          { rootMargin: "600px", threshold: 0 },
+        );
+        observador.observe(elemento);
       }
-      campo.current = renderizador;
-      if (process.env.NEXT_PUBLIC_E2E) window.__campoRenderer = renderizador;
-      /**
-       * Um quadro já, sem esperar pelo laço.
-       *
-       * É o que o `invalidate()` do invólucro anterior fazia na montagem e a
-       * cada mudança de tamanho: garante que o campo tem imagem mesmo antes de
-       * o observador de interseção se pronunciar, e que nunca existe um estado
-       * em que o canvas está montado e preto à espera de política.
-       */
-      renderizador.desenhar(0);
 
       return () => {
+        observador?.disconnect();
         elemento.removeEventListener("webglcontextlost", aoPerder);
         elemento.removeEventListener("webglcontextrestored", aoRestaurar);
+        if (!renderizador) return;
         campo.current = null;
         /**
          * Só apaga o seam se ele ainda for **este** renderizador. Ao trocar de
@@ -234,7 +301,10 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
          * cego apagava o ponteiro que o novo acabara de escrever — o e2e ficava
          * à espera de um renderer que existia.
          */
-        if (process.env.NEXT_PUBLIC_E2E && window.__campoRenderer === renderizador) {
+        if (
+          process.env.NEXT_PUBLIC_E2E &&
+          window.__campoRenderer === renderizador
+        ) {
           delete window.__campoRenderer;
         }
         /**
