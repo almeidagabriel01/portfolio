@@ -75,6 +75,17 @@ export const CAMPO_PADRAO: Required<OpcoesDoCampo> = {
   revelacao: 0,
 };
 
+/**
+ * Quantas trocas de canvas seguidas se gastam a tentar reaver o contexto, e
+ * quanto se espera entre elas.
+ *
+ * 10 × 250ms cobre com folga o que foi medido: o processo de GPU do Chrome a
+ * reiniciar demora abaixo de um segundo. O tecto existe para o caso em que a
+ * GPU não volta — sem ele seria um canvas novo a cada 250ms, para sempre.
+ */
+const TENTATIVAS = 10;
+const ESPERA = 250;
+
 export interface CampoHandle {
   /** Densidade da grelha. Escrito direto no uniform, sem passar pelo React. */
   definirEscala(valor: number): void;
@@ -104,6 +115,16 @@ declare global {
      * O formato é o que o renderer do three expunha, porque é o que os testes
      * já liam — `info.render.frame` e `getPixelRatio()`.
      */
+    /**
+     * Seam de teste: a revelação já terminou.
+     *
+     * O relógio não serve para esperar por ela — e o defeito de reconstrução
+     * que a `canvas-robustness` cobre só existe **depois** de ela acabar, com a
+     * rampa já encerrada. Amostrado cedo demais, o teste mede a rampa a repor o
+     * brilho e passa sempre. Como `__campoRenderer`, só é inequívoco em rota
+     * com um campo só.
+     */
+    __campoRevelado?: boolean;
     __campoRenderer?: {
       domElement: HTMLCanvasElement;
       info: { render: { frame: number; calls: number } };
@@ -158,12 +179,41 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
     const configInicial = useRef(config);
 
     /**
-     * Sobe quando o contexto WebGL é restaurado, para reconstruir tudo.
+     * **O último valor escrito em cada uniform depois da criação.**
      *
-     * Perder o contexto é rotina (o SO reclama a GPU, a aba fica muito tempo em
-     * segundo plano), e o `webglcontextlost` **só permite restauro se for
-     * cancelado**. Sem cancelar, o canvas fica preto para sempre.
+     * O renderizador nasce com `configInicial` e daí em diante quem manda é o
+     * handle, direto no uniform (AD-003) — o `escala` do scroll no hero, o
+     * `brilho` da revelação. Esses valores vivem **dentro** do renderizador, e
+     * um renderizador novo nasce sem eles: toda reconstrução devolvia o campo
+     * ao estado de montagem.
+     *
+     * Isso era invisível enquanto reconstruir só acontecia por perda de
+     * contexto — mas `usarMouse` é dep do efeito de criação, e ele é
+     * `(hover: hover)`, que o *device toolbar* do DevTools troca ao entrar e
+     * sair da emulação. Medido: o hero rebuilda com `brilho: 0` (que é como
+     * nasce quem tem revelação), a rampa que o subiria já terminou e vive noutro
+     * efeito, que não re-corre — **campo preto, e não voltava mais**. Era este o
+     * defeito relatado, e não a perda de contexto.
+     *
+     * Um ref e não estado: reescrever isto por evento de scroll seria um render
+     * do campo por quadro, que é exactamente o que o AD-003 proíbe.
      */
+    const ultimos = useRef<{
+      escala?: number;
+      brilho?: number;
+      escalaDoCampo?: number;
+    }>({});
+
+    /**
+     * A revelação é gesto de **primeira montagem**, e por isso mora aqui e não
+     * no efeito que a corre.
+     *
+     * Num ref ela sobrevive a toda reconstrução: o campo nasce preto uma vez, na
+     * chegada, e uma troca de renderizador depois disso repõe o brilho que já
+     * estava em vez de esmaecer 2,4s outra vez do preto.
+     */
+    const revelado = useRef(false);
+
     /**
      * Sobe sempre que o contexto WebGL cai, e é a **`key` do `<canvas>`**.
      *
@@ -218,6 +268,13 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
      */
     const jaNasceu = useRef(false);
 
+    /**
+     * Quantas trocas de canvas seguidas já se gastaram a tentar reaver o
+     * contexto. Zera a cada criação bem sucedida, então cada perda nova começa
+     * com o orçamento inteiro. Ver `TENTATIVAS`.
+     */
+    const tentativas = useRef(0);
+
     useEffect(() => {
       const elemento = canvas.current;
       if (!elemento) return;
@@ -232,15 +289,20 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
 
       let renderizador: CampoWebGL | null = null;
       let observador: IntersectionObserver | null = null;
+      let retentativa: ReturnType<typeof setTimeout> | undefined;
 
       const criar = () => {
         const atual = configInicial.current;
         renderizador = criarCampo(elemento, {
           escala: atual.escala,
           escalaDoCampo: atual.escalaDoCampo,
-          // Nasce preto quando há revelação: o loop sobe daqui até o valor
-          // calibrado. Sem revelação, entra já no valor final, como sempre.
-          brilho: atual.revelacao > 0 && !reducedMotion ? 0 : atual.brilho,
+          // Nasce preto quando há revelação **por revelar**: o loop sobe daqui
+          // até o valor calibrado. Sem revelação, ou já revelado, entra no valor
+          // final — ver `revelado` e `ultimos`.
+          brilho:
+            atual.revelacao > 0 && !reducedMotion && !revelado.current
+              ? 0
+              : atual.brilho,
           contraste: atual.contraste,
           limiar: atual.limiar,
           raioDaBorda: atual.raioDaBorda,
@@ -251,13 +313,44 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
         });
         /**
          * Devolver `null` é "não deu **agora**" — contexto perdido, ou o
-         * browser no teto de contextos vivos. Os ouvintes ficam: sem eles, o
-         * `webglcontextrestored` seguinte não encontrava ninguém e o campo
-         * ficava preto para sempre.
+         * browser no teto de contextos vivos.
+         *
+         * **E "agora" tem de virar "daqui a pouco", senão é para sempre.** Um
+         * `<canvas>` sem contexto nunca mais emite `webglcontextlost`, que é o
+         * único gatilho que troca a `key`: falhando uma vez, não existe evento
+         * nenhum capaz de acordar este campo outra vez. Era isto que se via ao
+         * ligar o *device toolbar* do DevTools — o browser larga os contextos
+         * de toda a página de uma vez e o processo de GPU reinicia, então a
+         * recriação imediata apanha a GPU ainda a levantar-se, e o campo do
+         * hero desaparecia sem erro nenhum e não voltava mais.
+         *
+         * A retentativa é uma **troca de canvas**, não outro `getContext` no
+         * mesmo nó: quando o que voltou foi um contexto já perdido (o guarda
+         * `isContextLost` de `criarCampo`), `getContext` devolve esse mesmo
+         * objeto morto a todas as chamadas seguintes. Só um nó novo dá contexto
+         * novo — a mesma razão pela qual `geracao` é a `key`.
          */
-        if (!renderizador) return;
+        if (!renderizador) {
+          if (tentativas.current < TENTATIVAS) {
+            tentativas.current++;
+            retentativa = setTimeout(() => setGeracao((n) => n + 1), ESPERA);
+          }
+          return;
+        }
+        tentativas.current = 0;
         campo.current = renderizador;
         jaNasceu.current = true;
+
+        /**
+         * O que já tinha sido escrito volta **antes do primeiro quadro**, senão
+         * o campo pisca no estado de montagem: no hero, a grelha do topo em vez
+         * da que a rolagem já tinha pedido. Ver `ultimos`.
+         */
+        const { escala, brilho, escalaDoCampo } = ultimos.current;
+        if (escala !== undefined) renderizador.definirEscala(escala);
+        if (brilho !== undefined) renderizador.definirBrilho(brilho);
+        if (escalaDoCampo !== undefined)
+          renderizador.definirEscalaDoCampo(escalaDoCampo);
         if (process.env.NEXT_PUBLIC_E2E) window.__campoRenderer = renderizador;
 
         /**
@@ -298,6 +391,7 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
 
       return () => {
         observador?.disconnect();
+        clearTimeout(retentativa);
         elemento.removeEventListener("webglcontextlost", trocarDeCanvas);
         if (!renderizador) return;
         campo.current = null;
@@ -388,7 +482,13 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
       let tempo = 0;
       const revelacao = configInicial.current.revelacao;
       const brilhoFinal = configInicial.current.brilho;
-      let revelado = !(revelacao > 0) || reducedMotion;
+      // `revelado` é ref de componente, não local do efeito: ele re-corre a
+      // cada troca de `<canvas>` e a revelação não pode recomeçar do preto.
+      const marcarRevelado = () => {
+        revelado.current = true;
+        if (process.env.NEXT_PUBLIC_E2E) window.__campoRevelado = true;
+      };
+      if (!(revelacao > 0) || reducedMotion) marcarRevelado();
 
       const desenharUm = () => {
         campo.current?.desenhar(0);
@@ -399,10 +499,12 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
         ultimo = agora;
         if (delta > 0 && delta < 0.5) tempo += delta;
 
-        if (!revelado) {
+        if (!revelado.current) {
           const progresso = Math.min(1, tempo / revelacao);
-          campo.current?.definirBrilho(brilhoFinal * suavizar(progresso));
-          if (progresso >= 1) revelado = true;
+          const valor = brilhoFinal * suavizar(progresso);
+          ultimos.current.brilho = valor;
+          campo.current?.definirBrilho(valor);
+          if (progresso >= 1) marcarRevelado();
         }
 
         campo.current?.desenhar(delta);
@@ -456,15 +558,21 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
     // ── Handle imperativo (AD-003) ─────────────────────────────────────────
     const handle = useMemo<CampoHandle>(
       () => ({
+        // Cada escrita fica gravada em `ultimos` para sobreviver a uma troca de
+        // renderizador. É uma atribuição de propriedade por evento, ao lado de
+        // uma escrita de uniform que já acontecia: nada por quadro muda.
         definirEscala: (valor) => {
+          ultimos.current.escala = valor;
           campo.current?.definirEscala(valor);
           pedirQuadro();
         },
         definirBrilho: (valor) => {
+          ultimos.current.brilho = valor;
           campo.current?.definirBrilho(valor);
           pedirQuadro();
         },
         definirEscalaDoCampo: (valor) => {
+          ultimos.current.escalaDoCampo = valor;
           campo.current?.definirEscalaDoCampo(valor);
           pedirQuadro();
         },
