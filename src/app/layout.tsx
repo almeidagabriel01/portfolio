@@ -30,10 +30,47 @@ const switzer = localFont({
   preload: true,
 });
 
+const DESCRICAO =
+  "Desenvolvedor Full-Stack focado em arquiteturas robustas e interações web inesquecíveis. Sócio na SoftCode e na ProOps, com produto no ar e cliente pagante.";
+
 export const metadata: Metadata = {
+  /**
+   * `metadataBase` é obrigatório aqui, e não conveniência: o `og:image` que os
+   * crawlers leem tem de ser **absoluto**. Sem esta linha o Next emite um
+   * caminho relativo em build local e o WhatsApp descarta o card inteiro (era
+   * exatamente o sintoma: link compartilhado sem pré-visualização nenhuma).
+   */
+  // Com `www`, que é o host canônico: o apex responde 307 para cá (medido), e
+  // crawler de pré-visualização não é obrigado a seguir redirecionamento numa
+  // imagem. Um salto a menos entre o card e quem compartilha o link.
+  metadataBase: new URL("https://www.almeidagabriel.com.br"),
   title: "Gabriel Dias | Portfolio",
-  description:
-    "Desenvolvedor Full-Stack focado em arquiteturas robustas e interações web inesquecíveis.",
+  description: DESCRICAO,
+  /**
+   * A imagem do card **não** é declarada aqui: ela é a convenção de arquivo
+   * `opengraph-image.jpg` (com o `.alt.txt` ao lado), e o Next deriva sozinho a
+   * URL com hash, o `type` e as dimensões. Declarar à mão seria repetir três
+   * campos que o build já sabe.
+   *
+   * O PNG é gerado por `scripts/og.mjs` — Playwright sobre a Switzer local, o
+   * campo de blocos e a foto em duotone. Regerar quando o texto ou a paleta
+   * mudarem.
+   */
+  openGraph: {
+    type: "website",
+    siteName: "Gabriel Dias",
+    title: "Gabriel Dias — Desenvolvedor Full-Stack",
+    description: DESCRICAO,
+    url: "/",
+    locale: "pt_BR",
+  },
+  // Sem `summary_large_image` o X/Twitter renderiza o card pequeno e quadrado, e
+  // recorta um 1200×630 pelo meio.
+  twitter: {
+    card: "summary_large_image",
+    title: "Gabriel Dias — Desenvolvedor Full-Stack",
+    description: DESCRICAO,
+  },
 };
 
 // Casa com o fundo do <body>: sem isso a barra de UI do mobile aparece clara
