@@ -15,10 +15,10 @@ import { expect, test } from "@playwright/test";
 const CAMPOS_POR_ROTA = {
   // hero + painel da Entregas + painel da Empresas
   "/": 3,
-  "/projetos": 1,
-  "/sobre": 1,
+  "/projects": 1,
+  "/about": 1,
   // A case page não tem hero nem painel.
-  "/projetos/barbalog": 0,
+  "/projects/barbalog": 0,
 } as const;
 
 test.describe("Um canvas por campo (AD-047)", () => {
@@ -39,11 +39,11 @@ test.describe("Um canvas por campo (AD-047)", () => {
     await page.waitForFunction(() => Boolean(window.__campoRenderer));
 
     const nav = page.getByRole("navigation", { name: "Navegação de rotas" });
-    // Termina em /projetos: é de lá que sai o link para a case page.
+    // Termina em /projects: é de lá que sai o link para a case page.
     for (const [link, url] of [
-      ["Sobre", "/sobre"],
+      ["Sobre", "/about"],
       ["Início", "/"],
-      ["Projetos", "/projetos"],
+      ["Projetos", "/projects"],
     ] as const) {
       await nav.getByRole("link", { name: link }).click();
       await page.waitForURL(url);
@@ -58,17 +58,17 @@ test.describe("Um canvas por campo (AD-047)", () => {
       .getByRole("heading", { level: 3, name: "Barbalog" })
       .getByRole("link", { name: "Barbalog" })
       .click();
-    await page.waitForURL("/projetos/barbalog");
+    await page.waitForURL("/projects/barbalog");
     await expect(page.locator("canvas")).toHaveCount(0);
 
     // E voltar remonta: o campo não fica preto depois do ciclo.
     await page.goBack();
-    await page.waitForURL("/projetos");
+    await page.waitForURL("/projects");
     await expect(page.locator("canvas")).toHaveCount(1);
     /**
      * **O topo é premissa, não asserção.**
      *
-     * Voltar restaura a posição de scroll, e o campo de `/projetos` mora no
+     * Voltar restaura a posição de scroll, e o campo de `/projects` mora no
      * hero: numa restauração para o meio da página ele nasce **fora da tela**,
      * onde não desenhar é exatamente o comportamento que o PORT-03 exige. A
      * restauração é uma corrida com a montagem do campo (medido: ora y=0, ora
@@ -98,7 +98,7 @@ test.describe("Um canvas por campo (AD-047)", () => {
   /**
    * **Uma volta não é teste de vazamento.** Contexto WebGL não descartado só
    * aparece depois de algumas: o browser recusa o contexto novo, e o campo
-   * nasce preto. Oito idas e voltas entre a home (3 campos) e `/projetos` (1)
+   * nasce preto. Oito idas e voltas entre a home (3 campos) e `/projects` (1)
    * são 24 criações; se a disposição estivesse quebrada, o teto do Chrome (16
    * contextos vivos) cairia bem antes do fim.
    *
@@ -114,7 +114,7 @@ test.describe("Um canvas por campo (AD-047)", () => {
 
     for (let volta = 0; volta < 8; volta++) {
       await nav.getByRole("link", { name: "Projetos" }).click();
-      await page.waitForURL("/projetos");
+      await page.waitForURL("/projects");
       await expect(page.locator("canvas")).toHaveCount(1);
       await nav.getByRole("link", { name: "Início" }).click();
       await page.waitForURL("/");
@@ -122,13 +122,13 @@ test.describe("Um canvas por campo (AD-047)", () => {
     }
 
     /**
-     * A prova fica em `/projetos`, que tem **um** campo só: o seam
+     * A prova fica em `/projects`, que tem **um** campo só: o seam
      * `__campoRenderer` aponta para o último canvas criado, e na home o último
      * pode ser um painel fora da tela — cujo contador fica em 0 de propósito,
      * porque campo fora da tela não desenha.
      */
     await nav.getByRole("link", { name: "Projetos" }).click();
-    await page.waitForURL("/projetos");
+    await page.waitForURL("/projects");
     const frames = () =>
       page.evaluate(() => window.__campoRenderer?.info.render.frame ?? -1);
     await page.waitForFunction(
@@ -154,6 +154,6 @@ test.describe("Um canvas por campo (AD-047)", () => {
       "Gabriel Almeida Dias",
     );
     // Nome de projeto e não markup: a asserção precisa sobreviver ao estilo.
-    expect(await (await request.get("/projetos")).text()).toContain("Barbalog");
+    expect(await (await request.get("/projects")).text()).toContain("Barbalog");
   });
 });

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { enUS, ptBR } from "@/locales";
 import { journeyExperiences } from "./journey";
 
-// PORT-16: /sobre renderiza as 6 experiências da jornada. O dado é pareado por
+// PORT-16: /about renderiza as 6 experiências da jornada. O dado é pareado por
 // posição com o texto do locale: contagem diferente renderiza experiência sem
 // texto (ou texto sem ícone) silenciosamente.
 describe("jornada (PORT-16)", () => {
@@ -41,7 +41,7 @@ describe("jornada (PORT-16)", () => {
     }
 
     // A paleta da v1 (#00f3ff, #7b2cbf, #3b82f6) morava aqui e era aplicada
-    // inline em `/sobre`, por fora dos tokens. Cor não volta para o dado.
+    // inline em `/about`, por fora dos tokens. Cor não volta para o dado.
     expect(JSON.stringify(journeyExperiences)).not.toMatch(/#[0-9a-f]{3,8}/i);
   });
 

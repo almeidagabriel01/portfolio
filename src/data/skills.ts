@@ -1,6 +1,6 @@
 /**
  * Dado puro: nenhum JSX, nenhum import da biblioteca de ícones. O `id` é a
- * chave semântica que a camada de UI (`/sobre`) usa para escolher o ícone. O
+ * chave semântica que a camada de UI (`/about`) usa para escolher o ícone. O
  * título de cada categoria vive em `locales.skills.categories`, pareado por
  * posição.
  */
@@ -23,7 +23,7 @@ type Locale = "pt" | "en";
  * A maioria é substantivo próprio ("Docker", "PostgreSQL", "Next.js") e se
  * escreve igual nos dois idiomas; obrigá-las a `{ pt: "Docker", en: "Docker" }`
  * seria ruído puro. Mas as entradas que são prosa ("Arquitetura Hexagonal",
- * "Inglês avançado") precisam de tradução: sem isso o `/sobre` em inglês
+ * "Inglês avançado") precisam de tradução: sem isso o `/about` em inglês
  * renderiza português, que foi exatamente o defeito encontrado aqui.
  */
 export type SkillName = string | Record<Locale, string>;
@@ -33,7 +33,7 @@ export const resolveSkill = (skill: SkillName, locale: Locale): string =>
 
 /**
  * Sem campo de cor. A v1 guardava um hex por categoria (`#00f3ff`, `#7b2cbf`)
- * e `/sobre` o aplicava inline, por fora dos tokens, numa paleta que a v4 não tem.
+ * e `/about` o aplicava inline, por fora dos tokens, numa paleta que a v4 não tem.
  * Cor de marca gráfica é decisão da folha de estilo, não do dado.
  */
 export interface SkillCategory {

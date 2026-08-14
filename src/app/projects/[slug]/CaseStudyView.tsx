@@ -40,7 +40,7 @@ export function CaseStudyView({
      */
     <main className="relative z-200 flex flex-col gap-100 pt-150 md:gap-150">
       <Link
-        href="/projetos"
+        href="/projects"
         className="w-calc"
       >
         <span className="group inline-flex items-center gap-12 type-button uppercase text-ink/55 transition-colors duration-300 hover:text-ink motion-reduce:transition-none">

@@ -15,10 +15,10 @@ function comStack(nome: string, stack: string[]): Project {
     link: "https://exemplo.invalid/",
     // As quatro mídias são obrigatórias em `Project`. Seguem a convenção de
     // caminho do dado real; nada aqui as renderiza.
-    video: `/projetos/${nome.toLowerCase()}.webm`,
-    videoMp4: `/projetos/${nome.toLowerCase()}.mp4`,
-    poster: `/projetos/${nome.toLowerCase()}-poster.webp`,
-    screenshot: `/projetos/${nome.toLowerCase()}.png`,
+    video: `/projects/${nome.toLowerCase()}.webm`,
+    videoMp4: `/projects/${nome.toLowerCase()}.mp4`,
+    poster: `/projects/${nome.toLowerCase()}-poster.webp`,
+    screenshot: `/projects/${nome.toLowerCase()}.png`,
     grupo: "cliente",
     entreguePor: "SoftCode",
     descricao: { pt: "", en: "" },

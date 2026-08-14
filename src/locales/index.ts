@@ -132,7 +132,7 @@ export const ptBR = {
   /**
    * O hero das rotas internas. **Cada rota tem o seu conjunto de frases**, e
    * isso não é enfeite: as três rotas abrem com o mesmo molde de hero, então
-   * repetir as frases da home fazia `/projetos` ler como a home outra vez.
+   * repetir as frases da home fazia `/projects` ler como a home outra vez.
    * Aqui a rota fala do que ela lista (trabalho publicado), e `sobre` de quem
    * escreve.
    *
@@ -170,7 +170,7 @@ export const ptBR = {
     },
   },
   /**
-   * A `/projetos`: o rótulo é um **fato de escala** e o título é uma
+   * A `/projects`: o rótulo é um **fato de escala** e o título é uma
    * **afirmação**, não uma descrição do que a página lista. Nada aqui repete a
    * seção de entregas da home, que já diz o que está no ar.
    */

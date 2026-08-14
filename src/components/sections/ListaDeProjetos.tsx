@@ -8,7 +8,7 @@ import { useTranslations } from "@/hooks/useTranslations";
 import { useStore } from "@/store";
 
 /**
- * O corpo da `/projetos`, fechado em 2026-08-11, porque não existe spec
+ * O corpo da `/projects`, fechado em 2026-08-11, porque não existe spec
  * desta rota.
  *
  * A estrutura é esta:
@@ -115,7 +115,7 @@ function Destaque() {
                     parte dos títulos abria o site em aba nova e parte navegava
                     para dentro do site, na mesma grade. */}
                 <Link
-                  href={`/projetos/${project.slug}`}
+                  href={`/projects/${project.slug}`}
                   className="transition-colors duration-300 hover:text-accent focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none"
                 >
                   {project.nome}
@@ -128,7 +128,7 @@ function Destaque() {
 
             <JanelaViva
               src={project.link}
-              /* O caminho declarado no dado, não `/projetos/${slug}.png`
+              /* O caminho declarado no dado, não `/projects/${slug}.png`
                  montado aqui: o caminho montado supunha um arquivo que o dado
                  não declarava, e a LyftConnect tinha exatamente esse par —
                  `lyftconnect.png` no disco e nenhum `screenshot` no dado. Esta
@@ -164,7 +164,7 @@ function Linha({ project }: { project: Project }) {
 
   return (
     <Link
-      href={`/projetos/${project.slug}`}
+      href={`/projects/${project.slug}`}
       data-projeto={project.slug}
       className="group relative flex flex-col gap-8 border-t border-line py-16 transition-colors duration-300 hover:text-ink motion-reduce:transition-none md:h-64 md:flex-row md:items-center md:gap-32 md:py-0"
     >

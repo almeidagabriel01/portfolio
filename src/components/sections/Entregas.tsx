@@ -23,7 +23,7 @@ import { useStore } from "@/store";
  * sobra: elas não são a mesma coisa cortada, são dois conjuntos.
  *
  * Antes daqui saía um `.slice(0, 6)` que deixava um estudo de fora, e o rótulo
- * dizia "Seis projetos publicados" enquanto `/projetos` listava sete.
+ * dizia "Seis projetos publicados" enquanto `/projects` listava sete.
  *
  * **A altura é o que não pode mudar**: duas fileiras de 260 dão os 520 do
  * painel ao lado, e é essa igualdade que faz o bloco fechar. Um terceiro grupo
@@ -508,7 +508,7 @@ export function Entregas() {
           <LinhaDeRotulo pontas={t.deliveries.panelTop} />
 
           <div className="relative">
-            <Botao href="/projetos" icone={<SetaDireita />}>
+            <Botao href="/projects" icone={<SetaDireita />}>
               {t.deliveries.all}
             </Botao>
           </div>
@@ -531,10 +531,10 @@ export function Entregas() {
         O mesmo botão do painel, para o estreito. `hidden`/`md:hidden` e não duas
         instâncias vivas: `display:none` tira o elemento da árvore de
         acessibilidade, então em qualquer viewport existe **um** link para
-        `/projetos`.
+        `/projects`.
       */}
       <div className="w-calc flex-center md:hidden">
-        <Botao href="/projetos" icone={<SetaDireita />}>
+        <Botao href="/projects" icone={<SetaDireita />}>
           {t.deliveries.all}
         </Botao>
       </div>
@@ -644,7 +644,7 @@ function Celula({
    * (aba nova) e o rótulo acessível. Duas células podiam sair do site e cinco
    * não, na mesma fileira.
    */
-  const href = `/projetos/${project.slug}`;
+  const href = `/projects/${project.slug}`;
 
   return (
     <LinkAnimado

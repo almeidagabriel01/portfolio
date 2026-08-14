@@ -64,6 +64,29 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  /**
+   * As rotas nasceram em português (`/projetos`, `/sobre`) e passaram a inglês.
+   * O site já está no ar, então os caminhos antigos continuam a existir como
+   * redirecionamento permanente — link compartilhado, aba salva e URL indexada
+   * não podem virar 404, e o 308 é o que transfere a autoridade de SEO para o
+   * caminho novo.
+   *
+   * O curinga cobre duas coisas de uma vez: o slug do case
+   * (`/projetos/barbalog`) e o **asset antigo** (`/projetos/barbalog.webm`), que
+   * mudou de pasta junto com a rota. HTML em cache no navegador de alguém ainda
+   * aponta para lá.
+   */
+  async redirects() {
+    return [
+      { source: "/projetos", destination: "/projects", permanent: true },
+      {
+        source: "/projetos/:caminho*",
+        destination: "/projects/:caminho*",
+        permanent: true,
+      },
+      { source: "/sobre", destination: "/about", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

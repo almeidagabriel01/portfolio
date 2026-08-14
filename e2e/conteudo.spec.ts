@@ -19,11 +19,11 @@ import { enUS, ptBR } from "../src/locales";
  */
 const ROTAS = [
   "/",
-  "/projetos",
-  "/sobre",
-  "/projetos/barbalog",
-  "/projetos/lyftconnect",
-  "/projetos/proops",
+  "/projects",
+  "/about",
+  "/projects/barbalog",
+  "/projects/lyftconnect",
+  "/projects/proops",
 ];
 
 async function trocarParaIngles(page: Page) {
@@ -88,7 +88,7 @@ test.describe("O case da ProOps não nomeia cliente (SEC-03)", () => {
     test(`nenhum nome de outra entrega no case da ProOps em ${locale}`, async ({
       page,
     }) => {
-      await page.goto("/projetos/proops");
+      await page.goto("/projects/proops");
       if (locale === "en") await trocarParaIngles(page);
 
       const caso = await page
@@ -114,14 +114,14 @@ test.describe("O case da ProOps não nomeia cliente (SEC-03)", () => {
  */
 test.describe("Nenhuma chave crua na case page (SEC-05)", () => {
   test("em português", async ({ page }) => {
-    await page.goto("/projetos/barbalog");
-    await expectTranslationsResolved(page, "/projetos/barbalog", "pt");
+    await page.goto("/projects/barbalog");
+    await expectTranslationsResolved(page, "/projects/barbalog", "pt");
   });
 
   test("em inglês", async ({ page }) => {
-    await page.goto("/projetos/barbalog");
+    await page.goto("/projects/barbalog");
     await trocarParaIngles(page);
-    await expectTranslationsResolved(page, "/projetos/barbalog", "en");
+    await expectTranslationsResolved(page, "/projects/barbalog", "en");
   });
 });
 
@@ -135,7 +135,7 @@ test.describe("Nenhum marcador de pendência chega à tela", () => {
     test(`o case do ${slug} não publica nenhum [VERIFICAR]`, async ({
       page,
     }) => {
-      await page.goto(`/projetos/${slug}`);
+      await page.goto(`/projects/${slug}`);
       const texto = await page.locator("main").innerText();
 
       /**

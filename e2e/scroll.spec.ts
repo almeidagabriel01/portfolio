@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const ROUTE = "/projetos";
+const ROUTE = "/projects";
 
 /** Amostras da janela de assentamento: 10 leituras × 200ms ≈ 1,8s. */
 const AMOSTRAS = 10;

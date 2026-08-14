@@ -12,12 +12,12 @@ function project(slug: string) {
 const barbalog = project("barbalog");
 const proops = project("proops");
 
-test.describe("Rota /projetos/[slug]: case page", () => {
+test.describe("Rota /projects/[slug]: case page", () => {
   // PORT-14
   test("o case do Barbalog renderiza contexto, papel, stack e link ao vivo", async ({
     page,
   }) => {
-    await page.goto("/projetos/barbalog");
+    await page.goto("/projects/barbalog");
 
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Barbalog");
     await expect(page.getByText(barbalog.case.contexto.pt)).toBeVisible();
@@ -39,7 +39,7 @@ test.describe("Rota /projetos/[slug]: case page", () => {
   test("o case do ProOps renderiza os destaques declarados", async ({
     page,
   }) => {
-    await page.goto("/projetos/proops");
+    await page.goto("/projects/proops");
 
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("ProOps");
     for (const destaque of proops.case.destaques.pt) {
@@ -49,7 +49,7 @@ test.describe("Rota /projetos/[slug]: case page", () => {
 
   // PORT-15: status HTTP real, não "a UI parece vazia".
   test("slug inexistente devolve 404 de verdade", async ({ request }) => {
-    expect((await request.get("/projetos/nao-existe")).status()).toBe(404);
+    expect((await request.get("/projects/nao-existe")).status()).toBe(404);
   });
 
   // Os estudos ganharam case page. O 404 continua sendo a garantia de PORT-15,
@@ -59,8 +59,8 @@ test.describe("Rota /projetos/[slug]: case page", () => {
   }) => {
     for (const slug of portfolioProjects.map((entry) => entry.slug)) {
       expect(
-        (await request.get(`/projetos/${slug}`)).status(),
-        `esperava 200 para /projetos/${slug}`,
+        (await request.get(`/projects/${slug}`)).status(),
+        `esperava 200 para /projects/${slug}`,
       ).toBe(200);
     }
   });
@@ -68,7 +68,7 @@ test.describe("Rota /projetos/[slug]: case page", () => {
   test("o link externo do case declara rel noopener noreferrer", async ({
     page,
   }) => {
-    await page.goto("/projetos/barbalog");
+    await page.goto("/projects/barbalog");
     const external = page.locator('a[href^="http"]');
 
     const count = await external.count();
@@ -82,7 +82,7 @@ test.describe("Rota /projetos/[slug]: case page", () => {
   });
 
   test("o case renderiza nos dois idiomas", async ({ page }) => {
-    await page.goto("/projetos/barbalog");
+    await page.goto("/projects/barbalog");
     await expect(page.getByText(barbalog.case.contexto.pt)).toBeVisible();
 
     await page.getByRole("button", { name: ptBR.header.language }).click();
@@ -102,23 +102,23 @@ test.describe("Rota /projetos/[slug]: case page", () => {
  * projetos com case existem no dado real. Ela é provada no unitário, com um
  * dado construído (`OutrosCases.test.tsx`).
  */
-test.describe("Rota /projetos/[slug]: navegação entre cases (SEC-14, SEC-16)", () => {
+test.describe("Rota /projects/[slug]: navegação entre cases (SEC-14, SEC-16)", () => {
   test("a case page renderiza exatamente duas seções de página", async ({
     page,
   }) => {
-    await page.goto("/projetos/barbalog");
+    await page.goto("/projects/barbalog");
 
     expect(await pageSectionIds(page)).toEqual([
       "case-titulo",
       "outros-cases",
     ]);
-    await expectSectionsLabelled(page, "/projetos/barbalog");
+    await expectSectionsLabelled(page, "/projects/barbalog");
   });
 
   test("a navegação lista os outros cases e exclui o atual", async ({
     page,
   }) => {
-    await page.goto("/projetos/lyftconnect");
+    await page.goto("/projects/lyftconnect");
     const outros = page.getByRole("region", { name: ptBR.caseStudy.others });
 
     expect(
@@ -138,31 +138,31 @@ test.describe("Rota /projetos/[slug]: navegação entre cases (SEC-14, SEC-16)",
         .getByRole("link")
         .evaluateAll((links) => links.map((link) => link.getAttribute("href"))),
     ).toEqual([
-      "/projetos/alura-space",
-      "/projetos/store-flow",
-      "/projetos/ola-mundo",
-      "/projetos/softcode",
-      "/projetos/barbalog",
-      "/projetos/proops",
+      "/projects/alura-space",
+      "/projects/store-flow",
+      "/projects/ola-mundo",
+      "/projects/softcode",
+      "/projects/barbalog",
+      "/projects/proops",
     ]);
   });
 
   // O link tem que levar ao case certo: uma lista com os nomes trocados de
   // destino passaria nas duas asserções acima se elas fossem separadas.
   test("clicar num outro case leva à case page dele", async ({ page }) => {
-    await page.goto("/projetos/barbalog");
+    await page.goto("/projects/barbalog");
 
     await page
       .getByRole("region", { name: ptBR.caseStudy.others })
       .getByRole("link", { name: /ProOps/ })
       .click();
 
-    await page.waitForURL("/projetos/proops");
+    await page.waitForURL("/projects/proops");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("ProOps");
   });
 
   test("a navegação entre cases renderiza em inglês", async ({ page }) => {
-    await page.goto("/projetos/barbalog");
+    await page.goto("/projects/barbalog");
     await page.getByRole("button", { name: ptBR.header.language }).click();
     await expect(
       page.getByRole("button", { name: enUS.header.language }),

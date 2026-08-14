@@ -235,7 +235,7 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
      * Os três campos da home montavam juntos, no carregamento, e criar um
      * custa caro onde não há GPU: são dois programas com sete ruídos simplex
      * cada, e o SwiftShader traduz isso na main thread. Medido a 4x de CPU,
-     * 1350×940: a home bloqueava **323 ms** contra 86 ms de `/projetos`, que
+     * 1350×940: a home bloqueava **323 ms** contra 86 ms de `/projects`, que
      * tem um campo só — e dois dos três nem estavam na tela.
      *
      * A margem é maior que a do laço de quadros (200px): a criação tem de
@@ -253,7 +253,7 @@ export const CampoDeBlocos = forwardRef<CampoHandle, Props>(
      * Os três campos da home nasciam juntos, no carregamento, e criar um custa
      * caro onde não há GPU: são dois programas com sete ruídos simplex cada, e
      * o SwiftShader traduz isso na main thread. Medido a 4x de CPU, 1350×940:
-     * a home bloqueava **323 ms** contra 86 ms de `/projetos`, que tem um
+     * a home bloqueava **323 ms** contra 86 ms de `/projects`, que tem um
      * campo só — e dois dos três nem estavam na tela.
      *
      * **Um `useState` aqui seria o defeito que o AD-003 proíbe**: `setPerto`

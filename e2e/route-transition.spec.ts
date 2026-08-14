@@ -126,13 +126,13 @@ test.describe("Transição de rota (view transitions)", () => {
     });
 
     await routeLink(page, "Projetos").click();
-    await page.waitForURL("/projetos");
+    await page.waitForURL("/projects");
     await page.waitForFunction(
-      () => window.__routeState?.().pathname.current === "/projetos",
+      () => window.__routeState?.().pathname.current === "/projects",
     );
 
     expect((await routeState(page))?.pathname).toEqual({
-      current: "/projetos",
+      current: "/projects",
       previous: "/",
     });
   });
@@ -146,7 +146,7 @@ test.describe("Transição de rota (view transitions)", () => {
     await armarSonda(page);
 
     await routeLink(page, "Projetos").click();
-    await page.waitForURL("/projetos");
+    await page.waitForURL("/projects");
     await esperarTransicao(page);
 
     const vistas = await lerSonda(page);
@@ -159,7 +159,7 @@ test.describe("Transição de rota (view transitions)", () => {
 
   // PORT-10
   test("nada intercepta o ponteiro depois da transição", async ({ page }) => {
-    await page.goto("/projetos");
+    await page.goto("/projects");
     await page.waitForFunction(() => Boolean(window.__routeState));
     await armarSonda(page);
 
@@ -173,7 +173,7 @@ test.describe("Transição de rota (view transitions)", () => {
 
     // A prova prática: um link continua clicável depois da transição.
     await routeLink(page, "Projetos").click();
-    await expect(page).toHaveURL("/projetos");
+    await expect(page).toHaveURL("/projects");
   });
 
   // PORT-11: a AC diz "voltar/avançar", então as duas direções contam.
@@ -191,7 +191,7 @@ test.describe("Transição de rota (view transitions)", () => {
     await page.waitForFunction(() => Boolean(window.__routeState));
     await armarSonda(page);
     await routeLink(page, "Projetos").click();
-    await page.waitForURL("/projetos");
+    await page.waitForURL("/projects");
     await esperarTransicao(page);
 
     await armarSonda(page);
@@ -203,18 +203,18 @@ test.describe("Transição de rota (view transitions)", () => {
       expect(await lerSonda(page)).toContainEqual(esperada);
     expect((await routeState(page))?.pathname).toEqual({
       current: "/",
-      previous: "/projetos",
+      previous: "/projects",
     });
 
     await armarSonda(page);
     await page.goForward();
-    await page.waitForURL("/projetos");
+    await page.waitForURL("/projects");
     await esperarTransicao(page);
 
     for (const esperada of GESTO)
       expect(await lerSonda(page)).toContainEqual(esperada);
     expect((await routeState(page))?.pathname).toEqual({
-      current: "/projetos",
+      current: "/projects",
       previous: "/",
     });
   });
@@ -226,14 +226,14 @@ test.describe("Transição de rota (view transitions)", () => {
     await page.waitForFunction(() => Boolean(window.__routeState));
 
     const card = page
-      .locator('#conteudo a[href^="/projetos/"]')
+      .locator('#conteudo a[href^="/projects/"]')
       .first();
     if ((await card.count()) === 0)
       throw new Error("nenhum card da home aponta para um case");
 
     await armarSonda(page, 1500);
     await card.click();
-    await page.waitForURL(/\/projetos\/.+/);
+    await page.waitForURL(/\/projects\/.+/);
     await page.waitForTimeout(1200);
 
     expect(await lerSonda(page)).toEqual([]);
@@ -242,7 +242,7 @@ test.describe("Transição de rota (view transitions)", () => {
   // PORT-12
   test("com reduced-motion a troca de rota é um corte", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/projetos");
+    await page.goto("/projects");
     await page.waitForFunction(
       () => matchMedia("(prefers-reduced-motion: reduce)").matches,
     );
@@ -273,7 +273,7 @@ test.describe("Transição de rota (view transitions)", () => {
     await routeLink(page, "Projetos").click();
     await routeLink(page, "Início").click();
     await routeLink(page, "Projetos").click();
-    await page.waitForURL("/projetos");
+    await page.waitForURL("/projects");
 
     // `vt.finished` rejeita quando uma transição é atropelada pela seguinte, e
     // é isso que fecha o `active`: um cronômetro fixo erraria sob carga.

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { enUS, ptBR } from "@/locales";
 import { portfolioSkills, resolveSkill } from "./skills";
 
-// PORT-16: /sobre renderiza as 3 categorias de skill. Título vem do locale,
+// PORT-16: /about renderiza as 3 categorias de skill. Título vem do locale,
 // pareado por posição com o dado.
 describe("habilidades (PORT-16)", () => {
   it("tem as 4 categorias na ordem esperada", () => {
@@ -70,7 +70,7 @@ describe("habilidades (PORT-16)", () => {
   });
 
   // A paleta da v1 (#00f3ff, #7b2cbf, #3b82f6) morava aqui e era aplicada
-  // inline em `/sobre`, por fora dos tokens. Cor não volta para o dado.
+  // inline em `/about`, por fora dos tokens. Cor não volta para o dado.
   it("nenhuma categoria embute cor", () => {
     expect(JSON.stringify(portfolioSkills)).not.toMatch(/#[0-9a-f]{3,8}/i);
   });
@@ -122,7 +122,7 @@ describe("habilidades ampliadas (SEC-15)", () => {
 
 /**
  * O defeito que esta suíte guarda: `skills` guardava só strings soltas, e o
- * `/sobre` em inglês renderizava "Arquitetura Hexagonal" e "Inglês avançado"
+ * `/about` em inglês renderizava "Arquitetura Hexagonal" e "Inglês avançado"
  * em português. A guarda de paridade cobre `locales/`, não `data/`, então
  * nada acusava.
  *

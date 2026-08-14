@@ -15,7 +15,7 @@ import { expect, type Page } from "@playwright/test";
  * acusava cinco seções faltando que estavam lá.
  *
  * A definição por aninhamento é a intenção original e não depende de wrapper:
- * em `/projetos` os grupos "Trabalho" e "Estudos" continuam de fora da contagem
+ * em `/projects` os grupos "Trabalho" e "Estudos" continuam de fora da contagem
  * porque moram dentro da seção da lista, que é exatamente o recorte do design.
  */
 const SELETOR_DE_SECAO = "main section[aria-labelledby]";

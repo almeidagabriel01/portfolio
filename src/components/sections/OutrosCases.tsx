@@ -52,7 +52,7 @@ export function OutrosCases({
         {outros.map((project) => (
           <li key={project.slug} className="border-b border-line">
             <Link
-              href={`/projetos/${project.slug}`}
+              href={`/projects/${project.slug}`}
               className="group grid items-baseline gap-8 py-24 transition-colors duration-300 hover:text-ink motion-reduce:transition-none md:grid-cols-[minmax(0,22.4rem)_minmax(0,1fr)_auto] md:gap-32"
             >
               {/* `translate="no"`: nome próprio de produto. Mesmo tratamento

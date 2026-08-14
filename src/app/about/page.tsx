@@ -127,7 +127,7 @@ export default function SobrePage() {
 
   return (
     /**
-     * Mesma estrutura da home e da `/projetos` (AD-014): o wrapper só carrega o
+     * Mesma estrutura da home e da `/projects` (AD-014): o wrapper só carrega o
      * vão entre blocos, e a calha vem de `.w-calc` em cada um.
      *
      * O `<h1>Sobre</h1>` que abria a rota saiu: quem é o `<h1>` agora é a

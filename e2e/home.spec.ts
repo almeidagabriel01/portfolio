@@ -579,16 +579,16 @@ test.describe("Rota /: seção de entregas (SEC-10, SEC-18)", () => {
 
     expect(
       await entregas
-        .locator('a[href^="/projetos/"]')
+        .locator('a[href^="/projects/"]')
         .evaluateAll((links) => links.map((link) => link.getAttribute("href"))),
     ).toEqual([
-      "/projetos/softcode",
-      "/projetos/barbalog",
-      "/projetos/lyftconnect",
-      "/projetos/proops",
-      "/projetos/alura-space",
-      "/projetos/store-flow",
-      "/projetos/ola-mundo",
+      "/projects/softcode",
+      "/projects/barbalog",
+      "/projects/lyftconnect",
+      "/projects/proops",
+      "/projects/alura-space",
+      "/projects/store-flow",
+      "/projects/ola-mundo",
     ]);
   });
 
@@ -810,7 +810,7 @@ test.describe("Rota /: seção de trajetória (SEC-01)", () => {
 
   /**
    * A propriedade que o arco tem e a jornada não: aqui o tempo corre para
-   * frente. Em `/sobre` a mesma lista é decrescente: se alguém "consertar" a
+   * frente. Em `/about` a mesma lista é decrescente: se alguém "consertar" a
    * ordem por simetria com a outra página, este teste cai.
    */
   test("os períodos correm em ordem cronológica crescente", async ({
@@ -838,7 +838,7 @@ test.describe("Rota /: seção de trajetória (SEC-01)", () => {
   });
 
   // "Cada marco ancora num fato da jornada": os fatos que o T3 acrescentou
-  // precisam chegar à tela por esta seção, não só por /sobre.
+  // precisam chegar à tela por esta seção, não só por /about.
   test("os marcos carregam os fatos da jornada corrigida", async ({ page }) => {
     await page.goto("/");
     const trajetoria = page.getByRole("region", {

@@ -17,8 +17,8 @@ import { useNavegacaoComTransicao } from "@/components/providers/TransicaoDeRota
  * lembrar de tirar depois.
  */
 const SEM_TRANSICAO: ReadonlyArray<readonly [string, string]> = [
-  ["/", "/projetos/"],
-  ["/projetos", "/projetos"],
+  ["/", "/projects/"],
+  ["/projects", "/projects"],
 ];
 
 function desligada(de: string, href: string) {

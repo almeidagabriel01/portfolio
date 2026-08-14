@@ -94,7 +94,7 @@ function ScrollBridge() {
   /**
    * Âncora precisa passar pelo Lenis, ou ela não rola.
    *
-   * Medido em `/projetos`: clicar num `<a href="#todos">` põe o hash na URL e o
+   * Medido em `/projects`: clicar num `<a href="#todos">` põe o hash na URL e o
    * `scrollY` **não sai do lugar**. O salto nativo escreve `scrollTop` direto,
    * o `animatedScroll` interno do Lenis continua no valor antigo, e no frame
    * seguinte ele reescreve o dele por cima: a página parece travar e voltar.

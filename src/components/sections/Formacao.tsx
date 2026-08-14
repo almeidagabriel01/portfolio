@@ -152,7 +152,7 @@ export function Formacao() {
             </ul>
 
             <div className="flex-center gap-16">
-              <Botao href="/sobre" icone={<SetaDireita />}>
+              <Botao href="/about" icone={<SetaDireita />}>
                 {t.header.about}
               </Botao>
             </div>
@@ -184,7 +184,7 @@ export function Formacao() {
 
       {amplo ? null : (
         <div className="flex-center gap-16">
-          <Botao href="/sobre" icone={<SetaDireita />}>
+          <Botao href="/about" icone={<SetaDireita />}>
             {t.header.about}
           </Botao>
         </div>

@@ -7,7 +7,7 @@ import { portfolioProjects } from "@/data/projects";
 import { useTranslations } from "@/hooks/useTranslations";
 
 /**
- * A rota `/projetos`.
+ * A rota `/projects`.
  *
  * A coluna não mora aqui (AD-014): o wrapper só carrega o vão entre blocos e a
  * calha vem de `.w-calc` dentro de cada um. Quem abre a rota é o hero de tela

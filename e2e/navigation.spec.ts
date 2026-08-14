@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { expectTranslationsResolved } from "./i18n-keys";
 
-const ROUTES = ["/", "/projetos", "/sobre"];
+const ROUTES = ["/", "/projects", "/about"];
 
 /** Escopo obrigatório: `/` ainda monta o Header legado, que também linka "Projetos". */
 function routeNav(page: Page, label: string) {
@@ -18,12 +18,12 @@ test.describe("Shell de layout: Header e Footer", () => {
     await routeNav(page, "Navegação de rotas")
       .getByRole("link", { name: "Projetos" })
       .click();
-    await expect(page).toHaveURL("/projetos");
+    await expect(page).toHaveURL("/projects");
 
     await routeNav(page, "Navegação de rotas")
       .getByRole("link", { name: "Sobre" })
       .click();
-    await expect(page).toHaveURL("/sobre");
+    await expect(page).toHaveURL("/about");
 
     await routeNav(page, "Navegação de rotas")
       .getByRole("link", { name: "Início" })
@@ -37,7 +37,7 @@ test.describe("Shell de layout: Header e Footer", () => {
     );
     expect(
       await page.evaluate(() => window.__routeState?.().pathname.previous),
-    ).toBe("/sobre");
+    ).toBe("/about");
   });
 
   test("o primeiro tab-stop é um skip link visível para o conteúdo", async ({
@@ -72,7 +72,7 @@ test.describe("Shell de layout: Header e Footer", () => {
     await routeNav(page, "Route navigation")
       .getByRole("link", { name: "Projects" })
       .click();
-    await expect(page).toHaveURL("/projetos");
+    await expect(page).toHaveURL("/projects");
 
     await expect(page.getByRole("button", { name: "Switch language" })).toHaveText(
       "EN",
@@ -83,7 +83,7 @@ test.describe("Shell de layout: Header e Footer", () => {
   });
 
   test("todo link externo declara rel noopener noreferrer", async ({ page }) => {
-    await page.goto("/projetos");
+    await page.goto("/projects");
     const external = page.locator('a[href^="http"]');
 
     // Sem este piso, a asserção passaria numa página sem link externo nenhum.

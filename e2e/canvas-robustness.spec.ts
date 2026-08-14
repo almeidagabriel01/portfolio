@@ -15,12 +15,12 @@ declare global {
 /**
  * Ciclo de vida do canvas: frameloop, aba oculta, contexto perdido. Nada disso
  * depende de rota, então vai de uma vez só em `ROUTE`, para não quadruplicar o
- * tempo da suíte. `/projetos` tem exatamente **um** campo (o hero), o que torna
+ * tempo da suíte. `/projects` tem exatamente **um** campo (o hero), o que torna
  * o seam `__campoRenderer` inequívoco e `document.querySelector("canvas")` o
  * canvas certo. Quantos canvas cada rota monta é assunto de
  * `canvas-persistence`.
  */
-const ROUTE = "/projetos";
+const ROUTE = "/projects";
 
 async function frameCount(page: Page): Promise<number> {
   return page.evaluate(() => window.__campoRenderer?.info.render.frame ?? -1);
@@ -468,9 +468,9 @@ test.describe("Canvas do campo: robustez", () => {
       await expect(page.locator("canvas")).toHaveCount(2);
 
       for (const [link, url, quantos] of [
-        ["Sobre", "/sobre", 1],
+        ["Sobre", "/about", 1],
         ["Início", "/", 2],
-        ["Projetos", "/projetos", 1],
+        ["Projetos", "/projects", 1],
       ] as const) {
         await page.getByRole("button", { name: "Menu" }).click();
         await page
@@ -485,7 +485,7 @@ test.describe("Canvas do campo: robustez", () => {
         .getByRole("heading", { level: 3, name: "Barbalog" })
         .getByRole("link", { name: "Barbalog" })
         .click();
-      await page.waitForURL("/projetos/barbalog");
+      await page.waitForURL("/projects/barbalog");
       await expect(page.locator("canvas")).toHaveCount(0);
     });
   });

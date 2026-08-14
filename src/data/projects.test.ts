@@ -167,7 +167,7 @@ describe("descrições sem correção na v3 permanecem intactas", () => {
   });
 });
 
-// PORT-14: /projetos/[slug] renderiza o case para quem tem case. Ausência de
+// PORT-14: /projects/[slug] renderiza o case para quem tem case. Ausência de
 // `case` é o que faz a rota devolver 404 (PORT-15).
 //
 // **Todo projeto tem case agora.** Até aqui o grupo estudo ficava de fora, e a
@@ -366,7 +366,7 @@ describe("screenshots do carrossel (UI-09)", () => {
     expect(portfolioProjects.length).toBeGreaterThan(3);
 
     for (const project of portfolioProjects) {
-      expect(project.screenshot).toMatch(/^\/projetos\/[a-z0-9-]+\.png$/);
+      expect(project.screenshot).toMatch(/^\/projects\/[a-z0-9-]+\.png$/);
       expect(
         existsSync(join(process.cwd(), "public", project.screenshot)),
         `screenshot declarado e ausente do disco: ${project.screenshot}`,
@@ -389,7 +389,7 @@ describe("screenshots do carrossel (UI-09)", () => {
 
     expect(declarados.length).toBeGreaterThan(0);
     for (const caminho of declarados) {
-      expect(caminho).toMatch(/^\/projetos\/[a-z0-9-]+\.(webm|mp4|webp)$/);
+      expect(caminho).toMatch(/^\/projects\/[a-z0-9-]+\.(webm|mp4|webp)$/);
       expect(
         existsSync(join(process.cwd(), "public", caminho)),
         `asset declarado e ausente do disco: ${caminho}`,
@@ -414,17 +414,17 @@ describe("screenshots do carrossel (UI-09)", () => {
   it("todo projeto declara vídeo, fallback H.264, poster e screenshot", () => {
     for (const project of portfolioProjects) {
       expect(project.video, `sem vídeo: ${project.slug}`).toMatch(
-        /^\/projetos\/[a-z0-9-]+\.webm$/,
+        /^\/projects\/[a-z0-9-]+\.webm$/,
       );
       // Sem o H.264 o iOS anterior ao 17.4 fica no poster para sempre.
       expect(project.videoMp4, `sem fallback H.264: ${project.slug}`).toMatch(
-        /^\/projetos\/[a-z0-9-]+\.mp4$/,
+        /^\/projects\/[a-z0-9-]+\.mp4$/,
       );
       expect(project.poster, `sem poster: ${project.slug}`).toMatch(
-        /^\/projetos\/[a-z0-9-]+-poster\.webp$/,
+        /^\/projects\/[a-z0-9-]+-poster\.webp$/,
       );
       expect(project.screenshot, `sem screenshot: ${project.slug}`).toMatch(
-        /^\/projetos\/[a-z0-9-]+\.png$/,
+        /^\/projects\/[a-z0-9-]+\.png$/,
       );
     }
   });
@@ -448,7 +448,7 @@ describe("screenshots do carrossel (UI-09)", () => {
       "a copy diz quatro entregas profissionais",
     ).toHaveLength(4);
     // Os estudos completam as seis células; sobrar é esperado (vão para
-    // `/projetos`), faltar deixaria buraco na segunda fileira.
+    // `/projects`), faltar deixaria buraco na segunda fileira.
     expect(estudos.length, "a copy diz três exercícios").toBeGreaterThanOrEqual(
       3,
     );

@@ -60,7 +60,7 @@ export interface Retangulo {
  * medição enxergar as partículas atrás dele. Nenhuma seção jamais leria como
  * preta e a garantia ficaria sem guarda.
  *
- * `main > *`, não `main > section`: em `/sobre` o `<h1>` é filho direto de
+ * `main > *`, não `main > section`: em `/about` o `<h1>` é filho direto de
  * `main`. Com o seletor restrito ele continuava visível na captura e os pixels
  * do próprio título entravam na conta como se fossem fundo: todo texto ao
  * redor mediria contraste contra si mesmo.
@@ -238,7 +238,7 @@ export async function relatorioDeContraste(
    * tamanho **entre** as varreduras. Todos os índices depois do hero deslizam,
    * cada elemento passa a ser medido com o piso e a cor de outro, e quando a
    * lista encolhe o script morre num `getBoundingClientRect` de `undefined`.
-   * Foi assim que a `/sobre` quebrou ao ganhar o hero. E a home, que tem o
+   * Foi assim que a `/about` quebrou ao ganhar o hero. E a home, que tem o
    * mesmo hero, vinha passando por sorte de temporização.
    *
    * A identidade agora é um atributo carimbado no próprio nó. Nada é resolvido
@@ -413,7 +413,7 @@ export async function relatorioDeContraste(
      * sempre: esperar por ele giraria a fila sem fim. Mas ela atropela
      * animação em **relógio**: a headline do hero reentra a cada 5s
      * (`opacity 0→1` em 2s, com blur e escala), e centralizá-la pega
-     * regularmente o meio da entrada. Medido na `/projetos`: 2,29:1 num estado
+     * regularmente o meio da entrada. Medido na `/projects`: 2,29:1 num estado
      * que dura milissegundos e que ninguém lê. O empurrão acima não resolve:
      * ele rola, e aqui não há scroll nenhum a dar.
      *

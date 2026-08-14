@@ -9,7 +9,7 @@ import { outrosCases, OutrosCases } from "./OutrosCases";
 // então o roteador entra como talvez o menor stub possível.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
-  usePathname: () => "/projetos/barbalog",
+  usePathname: () => "/projects/barbalog",
 }));
 
 /**
@@ -23,10 +23,10 @@ function projeto(slug: string): Project {
     link: "https://exemplo.invalid/",
     // As quatro mídias são obrigatórias em `Project`. Seguem a convenção de
     // caminho do dado real; nada aqui as renderiza.
-    video: `/projetos/${slug}.webm`,
-    videoMp4: `/projetos/${slug}.mp4`,
-    poster: `/projetos/${slug}-poster.webp`,
-    screenshot: `/projetos/${slug}.png`,
+    video: `/projects/${slug}.webm`,
+    videoMp4: `/projects/${slug}.mp4`,
+    poster: `/projects/${slug}-poster.webp`,
+    screenshot: `/projects/${slug}.png`,
     grupo: "cliente",
     entreguePor: "SoftCode",
     descricao: { pt: `descrição de ${slug}`, en: `description of ${slug}` },

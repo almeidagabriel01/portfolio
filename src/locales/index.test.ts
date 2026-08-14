@@ -62,7 +62,7 @@ describe("valores resolvíveis (PORT-19)", () => {
   });
 });
 
-// As rotas novas (`/`, `/projetos`, `/projetos/[slug]`) precisam de rótulo nos
+// As rotas novas (`/`, `/projects`, `/projects/[slug]`) precisam de rótulo nos
 // dois idiomas antes de a Phase 4 renderizá-las.
 describe("chaves das rotas novas", () => {
   it.each([

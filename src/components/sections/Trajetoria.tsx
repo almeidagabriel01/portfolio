@@ -25,7 +25,7 @@ import { TRANSICAO } from "@/lib/motion";
  * O quinto marco é o desfecho (as empresas próprias) e é o único texto novo,
  * porque sociedade não é emprego e não está na jornada.
  *
- * A ordem é **crescente** de propósito, e é o oposto da de `/sobre`. Aqui o
+ * A ordem é **crescente** de propósito, e é o oposto da de `/about`. Aqui o
  * tempo corre para frente porque a seção é um arco; lá é um histórico. Quem
  * "consertar" uma pela outra quebra as duas.
  */

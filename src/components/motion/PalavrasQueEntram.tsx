@@ -122,14 +122,14 @@ export function PalavrasQueEntram({
    * **Manda entrar a frase que está na tela — e roda depois do render dela.**
    *
    * Cobre os dois momentos: a montagem (quando não foi o CSS a animar, como
-   * numa navegação de cliente para `/projetos`) e cada troca de frase.
+   * numa navegação de cliente para `/projects`) e cada troca de frase.
    *
    * **Depender de `fraseNaTela` é o que conserta a palavra que some.** Antes, a
    * ordem "visível" saía no mesmo bloco do `setFraseNaTela`, ou seja, **antes**
    * de o React montar os `<span>` da frase nova. Palavra que já existia recebia
    * a ordem; palavra a mais, não — ela montava em `oculta` e ficava invisível
    * até a troca seguinte. Aparecia sempre que a frase nova era mais longa que a
-   * anterior: em `/projetos`, "Trabalho publicado" (2 palavras) seguida de
+   * anterior: em `/projects`, "Trabalho publicado" (2 palavras) seguida de
    * "Cada escolha tem motivo" (4) deixava "tem motivo" fora da tela. Como
    * efeito, isto corre **depois** do commit, com todos os spans montados.
    */

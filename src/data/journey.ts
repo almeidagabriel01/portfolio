@@ -1,6 +1,6 @@
 /**
  * Dado puro: nenhum JSX, nenhum import da biblioteca de ícones. O nome do ícone
- * é resolvido em elemento pela camada de UI (`/sobre`), que é quem conhece o
+ * é resolvido em elemento pela camada de UI (`/about`), que é quem conhece o
  * lucide-react. O texto de cada experiência vive em `locales.journey.experiences`
  * e é pareado por posição.
  */
@@ -8,7 +8,7 @@ export type JourneyIconName = "code" | "work" | "award" | "education";
 
 /**
  * Sem campo de cor. A v1 guardava um hex por entrada (`#00f3ff`, `#7b2cbf`,
- * `#3b82f6`) e `/sobre` o aplicava inline, passando por fora dos tokens, numa
+ * `#3b82f6`) e `/about` o aplicava inline, passando por fora dos tokens, numa
  * paleta que a v4 não tem. O sistema usa **um** azul para marca
  * gráfica, e quem decide isso é a folha de estilo, não o dado.
  */

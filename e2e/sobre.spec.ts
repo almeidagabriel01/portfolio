@@ -36,12 +36,12 @@ function jornada(page: Page) {
   });
 }
 
-test.describe("Rota /sobre: jornada e habilidades", () => {
+test.describe("Rota /about: jornada e habilidades", () => {
   // PORT-16
   test("as 7 experiências da jornada renderizam na ordem esperada", async ({
     page,
   }) => {
-    await page.goto("/sobre");
+    await page.goto("/about");
 
     expect(
       await texts(jornada(page).getByRole("heading", { level: 3 })),
@@ -52,7 +52,7 @@ test.describe("Rota /sobre: jornada e habilidades", () => {
   test("os períodos ficam em ordem cronológica decrescente", async ({
     page,
   }) => {
-    await page.goto("/sobre");
+    await page.goto("/about");
 
     // `[data-periodo]` e não `li > p`: no molde da rota a linha ficou plana
     // (período, cargo, empresa e descrição são irmãos), então a posição deixou
@@ -69,7 +69,7 @@ test.describe("Rota /sobre: jornada e habilidades", () => {
   test("as 4 categorias de skill renderizam com título e itens", async ({
     page,
   }) => {
-    await page.goto("/sobre");
+    await page.goto("/about");
 
     const habilidades = page.getByRole("region", {
       name: `${ptBR.skills.title}${ptBR.skills.highlight}`,
@@ -92,7 +92,7 @@ test.describe("Rota /sobre: jornada e habilidades", () => {
   });
 
   test("renderiza em inglês", async ({ page }) => {
-    await page.goto("/sobre");
+    await page.goto("/about");
     await page.getByRole("button", { name: ptBR.header.language }).click();
     await expect(
       page.getByRole("button", { name: enUS.header.language }),
@@ -119,20 +119,20 @@ test.describe("Rota /sobre: jornada e habilidades", () => {
    * descrições antigas passaria lá em cima e falharia aqui.
    */
   test("a rota renderiza o hero e as duas seções de página", async ({ page }) => {
-    await page.goto("/sobre");
+    await page.goto("/about");
 
     expect(await pageSectionIds(page)).toEqual([
       "hero",
       "jornada",
       "habilidades",
     ]);
-    await expectSectionsLabelled(page, "/sobre");
+    await expectSectionsLabelled(page, "/about");
   });
 
   test("os três estágios do INATEL aparecem com períodos distintos", async ({
     page,
   }) => {
-    await page.goto("/sobre");
+    await page.goto("/about");
     const texto = await jornada(page).evaluate((node) => node.textContent ?? "");
 
     // C5: eram um estágio só na tela; são três, e o DWDM é programa da Huawei
@@ -150,7 +150,7 @@ test.describe("Rota /sobre: jornada e habilidades", () => {
   test("a jornada traz o dimensionamento da fibra, o Salesforce e o webscraping", async ({
     page,
   }) => {
-    await page.goto("/sobre");
+    await page.goto("/about");
     const texto = await jornada(page).evaluate((node) => node.textContent ?? "");
 
     for (const fato of [
@@ -164,7 +164,7 @@ test.describe("Rota /sobre: jornada e habilidades", () => {
   });
 
   test("os mesmos fatos chegam em inglês", async ({ page }) => {
-    await page.goto("/sobre");
+    await page.goto("/about");
     await page.getByRole("button", { name: ptBR.header.language }).click();
     await expect(
       page.getByRole("button", { name: enUS.header.language }),
@@ -190,7 +190,7 @@ test.describe("Rota /sobre: jornada e habilidades", () => {
   test("as habilidades trazem Flask, Salesforce, NoSQL e o par funcional/OO", async ({
     page,
   }) => {
-    await page.goto("/sobre");
+    await page.goto("/about");
     const habilidades = page.getByRole("region", {
       name: `${ptBR.skills.title}${ptBR.skills.highlight}`,
     });
@@ -215,7 +215,7 @@ test.describe("Rota /sobre: jornada e habilidades", () => {
   test("as habilidades trazem o inglês avançado e as 21 certificações como número", async ({
     page,
   }) => {
-    await page.goto("/sobre");
+    await page.goto("/about");
     const formacao = page
       .getByRole("region", {
         name: `${ptBR.skills.title}${ptBR.skills.highlight}`,
@@ -233,7 +233,7 @@ test.describe("Rota /sobre: jornada e habilidades", () => {
     test.use({ javaScriptEnabled: false });
 
     test("jornada e habilidades chegam por SSR", async ({ page }) => {
-      await page.goto("/sobre");
+      await page.goto("/about");
 
       // `exact`: "Desenvolvedor de Software" é sufixo de "Estágio de …".
       for (const cargo of CARGOS_PT) {
@@ -251,7 +251,7 @@ test.describe("Rota /sobre: jornada e habilidades", () => {
 });
 
 /**
- * O contraste de `/sobre`, que a suíte não cobria em rota nenhuma além da home.
+ * O contraste de `/about`, que a suíte não cobria em rota nenhuma além da home.
  *
  * A rota renderizava os ícones com a paleta da v1 embutida no dado
  * (`#7b2cbf`, `#00f3ff`) aplicada por `style` inline, passando por fora dos
@@ -259,12 +259,12 @@ test.describe("Rota /sobre: jornada e habilidades", () => {
  * era paleta morta atravessando o sistema de design. O guarda de cor no dado
  * está em `skills.test.ts` e `journey.test.ts`; aqui fica o guarda do texto.
  */
-test.describe("Rota /sobre: contraste (WCAG AA)", () => {
+test.describe("Rota /about: contraste (WCAG AA)", () => {
   test("todo texto cumpre o piso do WCAG AA que lhe cabe", async ({ page }) => {
     // A auditoria varre ~100 elementos, e cada um pode exigir a própria volta
     // de scroll quando o reveal dele é ligado ao scroll. É lenta por desenho.
     test.setTimeout(120_000);
-    await page.goto("/sobre");
+    await page.goto("/about");
     await page.waitForFunction(() => Boolean(window.__lenis));
 
     const { falhas, avaliados } = await relatorioDeContraste(page);

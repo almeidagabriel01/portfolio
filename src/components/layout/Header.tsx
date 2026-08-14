@@ -24,13 +24,13 @@ declare global {
 }
 
 /**
- * As rotas do shell. `/projetos/[slug]` não entra aqui de propósito: o case é
+ * As rotas do shell. `/projects/[slug]` não entra aqui de propósito: o case é
  * alcançado a partir da lista, não da navegação global.
  */
 const ROUTES = [
   { href: "/", key: "home" },
-  { href: "/projetos", key: "projects" },
-  { href: "/sobre", key: "about" },
+  { href: "/projects", key: "projects" },
+  { href: "/about", key: "about" },
 ] as const;
 
 /** Onde o scrim termina de aparecer, em pixels de scroll. */

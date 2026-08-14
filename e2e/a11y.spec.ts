@@ -48,9 +48,9 @@ test.describe("Auditoria de reduced-motion", () => {
       .getByRole("navigation", { name: "Navegação de rotas" })
       .getByRole("link", { name: "Projetos" })
       .click();
-    await page.waitForURL("/projetos");
+    await page.waitForURL("/projects");
     await page.waitForFunction(
-      () => window.__routeState?.().pathname.current === "/projetos",
+      () => window.__routeState?.().pathname.current === "/projects",
     );
 
     expect(

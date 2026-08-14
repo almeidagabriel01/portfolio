@@ -59,12 +59,12 @@ function projectDescription(nome: string, locale: "pt" | "en") {
   return project.descricao[locale];
 }
 
-test.describe("Rota /projetos: hierarquia de projetos", () => {
+test.describe("Rota /projects: hierarquia de projetos", () => {
   // PORT-13
   test("o grupo Trabalho vem antes de Estudos, com as três entregas nessa ordem", async ({
     page,
   }) => {
-    await page.goto("/projetos");
+    await page.goto("/projects");
 
     // A tabela é uma só, e a ordem dela **é** o agrupamento: os três de
     // trabalho primeiro, os cinco estudos depois.
@@ -80,7 +80,7 @@ test.describe("Rota /projetos: hierarquia de projetos", () => {
 
   // PORT-13 + C2: a outra metade do agrupamento, agora com cinco estudos.
   test("o grupo Estudos lista os exercícios de curso", async ({ page }) => {
-    await page.goto("/projetos");
+    await page.goto("/projects");
 
     const daTabela = await gruposDaTabela(page);
     expect(daTabela.filter((g) => g === ptBR.projects.groups.estudo)).toHaveLength(
@@ -97,7 +97,7 @@ test.describe("Rota /projetos: hierarquia de projetos", () => {
   test("todo projeto recebe link para a própria case page", async ({
     page,
   }) => {
-    await page.goto("/projetos");
+    await page.goto("/projects");
 
     /**
      * Conjunto, não lista: cada projeto com case aparece **duas vezes** na
@@ -105,30 +105,30 @@ test.describe("Rota /projetos: hierarquia de projetos", () => {
      * que é o que o molde pede. O que o teste cobra é
      * *quem* tem case page, não quantas vezes é linkado.
      */
-    const caseLinks = page.locator('a[href^="/projetos/"]');
+    const caseLinks = page.locator('a[href^="/projects/"]');
     const destinos = await caseLinks.evaluateAll((links) =>
       links.map((link) => link.getAttribute("href")),
     );
     expect([...new Set(destinos)].sort()).toEqual([
-      "/projetos/alura-space",
-      "/projetos/barbalog",
-      "/projetos/lyftconnect",
-      "/projetos/ola-mundo",
-      "/projetos/proops",
-      "/projetos/softcode",
-      "/projetos/store-flow",
+      "/projects/alura-space",
+      "/projects/barbalog",
+      "/projects/lyftconnect",
+      "/projects/ola-mundo",
+      "/projects/proops",
+      "/projects/softcode",
+      "/projects/store-flow",
     ]);
 
     // O caminho que mudou: `alura-space` é estudo e agora aponta para dentro.
     expect(await linha(page, "alura-space").getAttribute("href")).toBe(
-      "/projetos/alura-space",
+      "/projects/alura-space",
     );
   });
 
   test("em português os rótulos e as descrições vêm em português", async ({
     page,
   }) => {
-    await page.goto("/projetos");
+    await page.goto("/projects");
 
     // Nível 2: o `<h1>` da rota passou a ser a headline do hero, e o título da
     // lista desceu um nível junto (fase C).
@@ -152,7 +152,7 @@ test.describe("Rota /projetos: hierarquia de projetos", () => {
   test("em inglês os rótulos de grupo e as descrições trocam", async ({
     page,
   }) => {
-    await page.goto("/projetos");
+    await page.goto("/projects");
     await page.getByRole("button", { name: ptBR.header.language }).click();
     await expect(
       page.getByRole("button", { name: enUS.header.language }),
@@ -185,7 +185,7 @@ const STACK_REGIAO = {
   en: "The stack behind the work.",
 };
 
-test.describe("Rota /projetos: janela viva do card de destaque", () => {
+test.describe("Rota /projects: janela viva do card de destaque", () => {
   /**
    * O requisito tem duas metades, e a segunda é a que paga: a janela **não**
    * pode carregar sozinha. Três `<iframe>` de terceiros no primeiro paint
@@ -194,7 +194,7 @@ test.describe("Rota /projetos: janela viva do card de destaque", () => {
   test("nenhum iframe existe antes do gesto, e o primeiro só nasce ao abrir", async ({
     page,
   }) => {
-    await page.goto("/projetos");
+    await page.goto("/projects");
     await expect(page.locator("iframe")).toHaveCount(0);
 
     await page
@@ -219,7 +219,7 @@ test.describe("Rota /projetos: janela viva do card de destaque", () => {
   // O card deixou de ser um link inteiro: um `<iframe>` dentro de uma âncora
   // rouba o clique do site embutido. O link agora é o título.
   test("o título do card continua levando à case page", async ({ page }) => {
-    await page.goto("/projetos");
+    await page.goto("/projects");
     // O bloco de destaque não tem mais id: o alternador que precisava de
     // âncora saiu. O título do card é o link, e ele é `<h3>`.
     expect(
@@ -227,13 +227,13 @@ test.describe("Rota /projetos: janela viva do card de destaque", () => {
         .getByRole("heading", { level: 3, name: "Barbalog" })
         .getByRole("link", { name: "Barbalog" })
         .getAttribute("href"),
-    ).toBe("/projetos/barbalog");
+    ).toBe("/projects/barbalog");
   });
 });
 
-test.describe("Rota /projetos: stack transversal (SEC-13, SEC-16)", () => {
+test.describe("Rota /projects: stack transversal (SEC-13, SEC-16)", () => {
   test("a rota renderiza o hero e as duas seções de página", async ({ page }) => {
-    await page.goto("/projetos");
+    await page.goto("/projects");
 
     // O hero entrou na fase C: as três rotas internas abrem com
     // o mesmo bloco `h-svh`, e ele é uma seção de página como as outras.
@@ -242,13 +242,13 @@ test.describe("Rota /projetos: stack transversal (SEC-13, SEC-16)", () => {
       "lista-de-projetos",
       "stack-transversal",
     ]);
-    await expectSectionsLabelled(page, "/projetos");
+    await expectSectionsLabelled(page, "/projects");
   });
 
   test("cada tecnologia aparece com as entregas que a declaram", async ({
     page,
   }) => {
-    await page.goto("/projetos");
+    await page.goto("/projects");
     const stack = page.getByRole("region", { name: STACK_REGIAO.pt });
 
     // Next.js está nas três entregas; Stripe só na ProOps. Uma agregação que
@@ -272,10 +272,10 @@ test.describe("Rota /projetos: stack transversal (SEC-13, SEC-16)", () => {
   test("nenhum marcador [VERIFICAR] chega à lista nem à case page", async ({
     page,
   }) => {
-    await page.goto("/projetos");
+    await page.goto("/projects");
     expect(await page.locator("main").innerText()).not.toContain("[VERIFICAR]");
 
-    await page.goto("/projetos/proops");
+    await page.goto("/projects/proops");
     expect(await page.locator("main").innerText()).not.toContain("[VERIFICAR]");
   });
 
@@ -304,7 +304,7 @@ test.describe("Rota /projetos: stack transversal (SEC-13, SEC-16)", () => {
     ]) {
       test(`em ${viewport.width}x${viewport.height}`, async ({ page }) => {
         await page.setViewportSize(viewport);
-        await page.goto("/projetos");
+        await page.goto("/projects");
         await page.waitForFunction(() => Boolean(window.__lenis));
 
         // Amostra a cada quadro até o `justify-content` trocar, e guarda a
@@ -346,7 +346,7 @@ test.describe("Rota /projetos: stack transversal (SEC-13, SEC-16)", () => {
   });
 
   test("a stack transversal renderiza em inglês", async ({ page }) => {
-    await page.goto("/projetos");
+    await page.goto("/projects");
     await page.getByRole("button", { name: ptBR.header.language }).click();
     await expect(
       page.getByRole("button", { name: enUS.header.language }),
@@ -365,15 +365,15 @@ test.describe("Rota /projetos: stack transversal (SEC-13, SEC-16)", () => {
 
 /**
  * A terceira rota no contraste. O carrossel do UI-08 trouxe texto novo para
- * `/projetos` (legenda, nome e atribuição), e era a única rota com conteúdo
+ * `/projects` (legenda, nome e atribuição), e era a única rota com conteúdo
  * própria que ainda não tinha piso de contraste medido.
  */
-test.describe("Rota /projetos: contraste (WCAG AA)", () => {
+test.describe("Rota /projects: contraste (WCAG AA)", () => {
   test("todo texto cumpre o piso do WCAG AA que lhe cabe", async ({ page }) => {
     // A auditoria varre ~100 elementos, e cada um pode exigir a própria volta
     // de scroll quando o reveal dele é ligado ao scroll. É lenta por desenho.
     test.setTimeout(120_000);
-    await page.goto("/projetos");
+    await page.goto("/projects");
     await page.waitForFunction(() => Boolean(window.__lenis));
 
     const { falhas, avaliados } = await relatorioDeContraste(page);

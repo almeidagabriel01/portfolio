@@ -116,7 +116,7 @@ const RENDERED_KEYS: Record<string, string[]> = {
     "contact.networks",
     "contact.from",
   ],
-  "/projetos": [
+  "/projects": [
     ...HEADER,
     "projects.title",
     "projects.highlight",
@@ -132,13 +132,13 @@ const RENDERED_KEYS: Record<string, string[]> = {
     "projects.groups.trabalho",
     "projects.groups.estudo",
     /**
-     * `projects.viewCase` saiu da `/projetos` na fase C: no molde da rota o
+     * `projects.viewCase` saiu da `/projects` na fase C: no molde da rota o
      * card inteiro leva ao destino e não há rótulo de ação dentro dele. A chave
      * segue exigida na home, onde a célula da grade ainda a mostra.
      */
     /**
-     * `caseStudy.visit` saiu daqui na fase C. A `/projetos` virou a tabela do
-     * molde `/projetos`, onde a linha inteira é o link e o destino externo se
+     * `caseStudy.visit` saiu daqui na fase C. A `/projects` virou a tabela do
+     * molde `/projects`, onde a linha inteira é o link e o destino externo se
      * anuncia pelo `target`, não por um rótulo dentro da célula: a chave
      * continua exigida na case page, que é onde ela aparece na tela.
      */
@@ -149,7 +149,7 @@ const RENDERED_KEYS: Record<string, string[]> = {
   // A case page: os blocos do case mais o título da navegação entre cases. O
   // Barbalog é o representante da rota `[slug]`: as três compartilham o mesmo
   // componente.
-  "/projetos/barbalog": [
+  "/projects/barbalog": [
     ...HEADER,
     "caseStudy.context",
     "caseStudy.role",
@@ -159,7 +159,7 @@ const RENDERED_KEYS: Record<string, string[]> = {
     "caseStudy.back",
     "caseStudy.others",
   ],
-  "/sobre": [
+  "/about": [
     ...HEADER,
     "journey.title",
     "journey.highlight",

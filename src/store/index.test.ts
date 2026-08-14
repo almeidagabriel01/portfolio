@@ -60,28 +60,28 @@ describe("AppState, forma do estado (design: interface AppState)", () => {
 // pathname.current com a nova.
 describe("pathname (PORT-09)", () => {
   it("na primeira rota grava current e mantém previous nulo", () => {
-    useStore.getState().setPathname("/projetos");
+    useStore.getState().setPathname("/projects");
     expect(useStore.getState().pathname).toEqual({
-      current: "/projetos",
+      current: "/projects",
       previous: null,
     });
   });
 
   it("na navegação seguinte move a rota anterior para previous", () => {
-    useStore.getState().setPathname("/projetos");
-    useStore.getState().setPathname("/sobre");
+    useStore.getState().setPathname("/projects");
+    useStore.getState().setPathname("/about");
     expect(useStore.getState().pathname).toEqual({
-      current: "/sobre",
-      previous: "/projetos",
+      current: "/about",
+      previous: "/projects",
     });
   });
 
   it("navegar para a mesma rota não sobrescreve previous", () => {
     useStore.getState().setPathname("/");
-    useStore.getState().setPathname("/projetos");
-    useStore.getState().setPathname("/projetos");
+    useStore.getState().setPathname("/projects");
+    useStore.getState().setPathname("/projects");
     expect(useStore.getState().pathname).toEqual({
-      current: "/projetos",
+      current: "/projects",
       previous: "/",
     });
   });

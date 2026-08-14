@@ -311,7 +311,7 @@ test.describe("Header: menu mobile", () => {
     }
 
     await painel.getByRole("link", { name: ptBR.header.projects }).click();
-    await page.waitForURL("**/projetos");
+    await page.waitForURL("**/projects");
     // Fechar tem que acontecer junto com a troca de rota, não um frame depois.
     await expect(painel).toHaveCount(0);
   });
