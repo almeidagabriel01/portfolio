@@ -227,12 +227,80 @@ export default function SobrePage() {
                   return (
                     <li
                       key={nome}
-                      className="border-t border-line py-16 type-m-16 text-ink"
+                      className="group relative border-t border-line py-16 type-m-16 text-ink"
                     >
-                      {nome}
+                      {/*
+                        O filete de cima acende em âmbar e **varre** da esquerda
+                        para a direita. É o mesmo filete do molde, não uma barra
+                        nova: fica em `-top-px` porque a caixa de posicionamento
+                        começa depois da borda, e sem o −1px a varredura corria
+                        um pixel abaixo da linha que ela deveria acender.
+                      */}
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute inset-x-0 -top-px h-px origin-left scale-x-0 bg-accent transition-transform duration-300 ease-snappy group-hover:scale-x-100 motion-reduce:transition-none"
+                      />
+                      {/* O filete de baixo é o de cima da célula seguinte (e,
+                          na última fileira, o `border-b` da `<ul>`): acender os
+                          dois em sentidos opostos fecha a célula em vez de
+                          sublinhar o item de cima, que era o que uma linha só
+                          parecia fazer.
+
+                          `z-10` é o que faz esta acender em **toda** célula.
+                          Toda `<li>` é `relative`, logo posicionada, e elemento
+                          posicionado pinta na ordem do DOM: a borda da célula
+                          seguinte cobria esta faixa. Só a última fileira
+                          escapava — abaixo dela não há irmã, só o `border-b` da
+                          `<ul>` — e o resultado era a incoerência relatada, com
+                          umas células acendendo dos dois lados e outras só em
+                          cima. */}
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute inset-x-0 -bottom-px z-10 h-px origin-right scale-x-0 bg-accent transition-transform duration-300 ease-snappy group-hover:scale-x-100 motion-reduce:transition-none"
+                      />
+                      {/* O quadrado âmbar é o mesmo do rótulo do rail (`size-8
+                          bg-accent`), aqui em ponto menor: ele abre no lugar
+                          onde o nome estava e o nome desliza para dar espaço,
+                          então o item ganha marcador sem reflow nenhum. */}
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute left-0 top-1/2 size-6 -translate-y-1/2 scale-0 bg-accent opacity-0 transition-[transform,opacity] duration-300 ease-snappy group-hover:scale-100 group-hover:opacity-100 motion-reduce:transition-none"
+                      />
+                      <span className="block transition-transform duration-300 ease-snappy group-hover:translate-x-16 motion-reduce:transition-none">
+                        {nome}
+                      </span>
                     </li>
                   );
                 })}
+                {/*
+                  A última fileira quase nunca fecha — sete habilidades em três
+                  colunas deixam duas células vazias — e sem célula não há
+                  `border-t`: o filete que separa a penúltima da última fileira
+                  morria no meio da grade (era o defeito relatado). Estas células
+                  vazias existem só para carregar esse filete, e o número delas
+                  muda com a contagem de colunas de cada breakpoint.
+                */}
+                {Array.from(
+                  {
+                    length: Math.max(
+                      category.skills.length % 2,
+                      (3 - (category.skills.length % 3)) % 3,
+                    ),
+                  },
+                  (_, i) => (
+                    <li
+                      key={`vazio-${i}`}
+                      aria-hidden
+                      className={`hidden border-t border-line ${
+                        i < category.skills.length % 2 ? "sm:block" : "sm:hidden"
+                      } ${
+                        i < (3 - (category.skills.length % 3)) % 3
+                          ? "xl:block"
+                          : "xl:hidden"
+                      }`}
+                    />
+                  ),
+                )}
               </ul>
             </Grupo>
           );
