@@ -25,9 +25,8 @@ import { useStore } from "@/store";
  * Antes daqui saía um `.slice(0, 6)` que deixava um estudo de fora, e o rótulo
  * dizia "Seis projetos publicados" enquanto `/projects` listava sete.
  *
- * **A altura é o que não pode mudar**: duas fileiras de 260 dão os 520 do
- * painel ao lado, e é essa igualdade que faz o bloco fechar. Um terceiro grupo
- * exigiria repensar a proporção, não acrescentar uma fileira.
+ * As duas fileiras têm a mesma altura, definida pelo conteúdo mais longo.
+ * O painel acompanha a grade, sem limitar o espaço das descrições.
  */
 const PROFISSIONAIS = portfolioProjects.filter(
   (project) => project.grupo !== "estudo",
@@ -51,11 +50,11 @@ const CELULAS_POR_FILEIRA = [PROFISSIONAIS.length, ESTUDOS.length] as const;
 /**
  * As transições da célula, que **não** são a mesma de propósito.
  *
- * O nome sai mais devagar (0.4) do que o overlay entra (0.3), e é essa
+ * O nome sai mais devagar (0.4) do que os rótulos entram (0.3), e é essa
  * defasagem que faz a célula ler como *troca* e não como crossfade. O scrim vai
  * sem `transition` porque o default do motion para opacidade já é o que o
  * bloco pede ali (0.3s, `[.25,.1,.35,1]`); declarar `{duration:.3}` mudaria
- * a curva para `easeOut`, que é a do overlay.
+ * a curva para `easeOut`.
  */
 const TRANSICAO_DO_NOME = { duration: 0.4, ease: EASE.OUT_SNAPPY } as const;
 /**
@@ -138,7 +137,6 @@ function origemDaCelula(indice: number): string {
   const pct = (n: number) => `${(n * 100).toFixed(4)}%`;
   return `${pct(esquerda + largura / 2)} ${pct(topo + altura / 2)}`;
 }
-const TRANSICAO_DO_OVERLAY = { duration: 0.3 } as const;
 const TRANSICAO_DO_ROTULO = {
   duration: 0.3,
   delay: 0.1,
@@ -155,11 +153,9 @@ const LinkAnimado = motion.create(Link);
  * SEC-10 e SEC-18 no molde do bloco *portfolio*, o primeiro
  * depois do hero.
  *
- * O bloco tem duas metades e as duas importam. À esquerda, uma malha de 3 × 2
- * onde apontar para uma célula **escurece as outras** e revela o que aquela
- * entrega é. À direita, um painel do mesmo tamanho com o campo de blocos, duas
- * linhas de rótulo distribuídas ponta a ponta e um botão no meio. A versão
- * anterior daqui tinha só a metade esquerda, com metade da altura.
+ * A grade ocupa dois terços do bloco no desktop. Apontar para uma célula
+ * escurece as outras e revela a entrega. O painel à direita acompanha a
+ * altura da grade, com o campo de blocos e o botão de todos os projetos.
  *
  * Dois detalhes carregam o efeito:
  *
@@ -252,7 +248,8 @@ export function Entregas() {
    * `<video autoplay>`. Sem esta escolha, o desktop carregaria os sete vídeos
    * do carrossel além do da célula apontada.
    */
-  const ehLargo = useMediaQuery("(min-width: 48rem)");
+  const ehLargo = useMediaQuery("(min-width: 64rem)");
+  const mostraPainel = useMediaQuery("(min-width: 80rem)");
 
   /*
     Aqui existia um `preload` das capturas do hover: a camada do largo montava
@@ -287,10 +284,10 @@ export function Entregas() {
       </div>
 
       {/*
-        A moldura só existe a partir do `md`. Abaixo disso a mesma lista vira
+        A moldura só existe a partir do `lg`. Abaixo disso a mesma lista vira
         carrossel, e uma borda em volta de um trilho que rola cortaria o cartão
         que sangra pela direita, então o wrapper também só ganha a coluna no
-        `md`, para o trilho poder ir até as bordas da viewport.
+        `lg`, para o trilho poder ir até as bordas da viewport.
 
         `border-[#57534e]` é o hex medido em navegador, e não
         `border-line` (`#2a2622`): essa é 2,3× mais escura e some contra o
@@ -300,7 +297,7 @@ export function Entregas() {
       */}
       <div
         ref={blocoDaMidia}
-        className="relative md:w-calc md:grid md:grid-cols-2 md:border md:border-[#57534e]"
+        className="relative lg:w-calc lg:grid lg:border lg:border-[#57534e] xl:grid-cols-[2fr_1fr]"
       >
         <div className="relative">
           {/*
@@ -404,22 +401,9 @@ export function Entregas() {
                       <source src={destacado.video} type="video/webm" />
                       <source src={destacado.videoMp4} type="video/mp4" />
                     </motion.video>
-                    {/*
-                      Véu fixo sobre a mídia, e o número é medido, não gostado.
-
-                      Os vídeos são peças de marca, escuras e
-                      feitas para levar texto por cima; os nossos são páginas
-                      reais, e o `proops` tem luminância mediana 0,99. Só com o
-                      scrim de foco (0.5, fato) o rótulo de 12px
-                      fica a 3,3:1 sobre branco e reprova o AA.
-
-                      `/35` é o piso que resolve o pior caso (branco puro cai a
-                      0,325 em sRGB e o rótulo sobe para ~6,5:1) sem apagar o
-                      caso oposto: a LyftConnect é um site escuro, e a 0,55 o
-                      vídeo dela sumia. Quem confere é `home.spec.ts`, que mede
-                      o contraste na tela.
-                    */}
-                    <div className="absolute inset-0 bg-black/15" />
+                    {/* Com o scrim da célula, mantém contraste mesmo sobre
+                        um quadro branco do vídeo. */}
+                    <div className="absolute inset-0 bg-black/35" />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -447,11 +431,11 @@ export function Entregas() {
               trilho único que o estreito precisa para o snap — duplicar a
               marcação custaria dois lugares para corrigir a cada entrega nova.
             */
-            classeDoTrilho="gap-32 px-[calc((100vw-26.5rem)*0.5)] scroll-px-[calc((100vw-26.5rem)*0.5)] md:grid md:grid-cols-12 md:gap-0 md:overflow-visible md:px-0 md:[&>*:nth-child(-n+4)]:col-span-3 md:[&>*:nth-child(n+5)]:col-span-4"
-            classeDoItem="w-265 shrink-0 snap-center md:w-full"
+            classeDoTrilho="gap-32 px-[calc((100vw-26.5rem)*0.5)] scroll-px-[calc((100vw-26.5rem)*0.5)] lg:grid lg:auto-rows-fr lg:grid-cols-12 lg:cursor-auto lg:select-text lg:gap-0 lg:overflow-visible lg:px-0 lg:[&>*:nth-child(-n+4)]:col-span-3 lg:[&>*:nth-child(n+5)]:col-span-4"
+            classeDoItem="w-265 min-w-0 shrink-0 snap-center lg:w-full"
             // Os pontos não têm o que navegar quando todas as células estão na
             // tela ao mesmo tempo.
-            className="md:[&>[role=group]]:hidden"
+            className="lg:[&>[role=group]]:hidden"
             renderizar={(project, _indice, ativo) => (
               <Celula
                 project={project}
@@ -472,18 +456,13 @@ export function Entregas() {
         </div>
 
         {/*
-          A metade direita. Tem exatamente o mesmo tamanho da malha
-          (669 × 520), e é o que dá ao bloco a proporção que ele tem.
+          O painel acompanha a altura da malha. Só divide a largura com os
+          cards em telas grandes, para não comprimir o texto no tablet.
         */}
-        <div className="relative hidden flex-col items-center justify-between p-30 md:flex">
-          {/* Canvas próprio dentro do painel, não recorte de canvas fixo: ver
-              `CanvasDoCampo`.
-
-              Atrás de `ehLargo` e não só do `hidden md:flex` do pai: `display:
-              none` esconde o canvas, mas o contexto WebGL continua criado e o
-              loop continua a desenhar num retângulo de tamanho zero. Este
-              painel não existe abaixo do `md`; o contexto dele também não deve. */}
-          {ehLargo && (
+        <div className="relative hidden flex-col items-center justify-between p-30 xl:flex">
+          {/* Monta o canvas só quando o painel está visível; display:none
+              sozinho deixaria um contexto WebGL trabalhando fora da tela. */}
+          {mostraPainel && (
             <div className="absolute inset-0">
               {/*
                 **Os dois números são medidos, não escolhidos.**
@@ -528,12 +507,12 @@ export function Entregas() {
       </div>
 
       {/*
-        O mesmo botão do painel, para o estreito. `hidden`/`md:hidden` e não duas
+        O mesmo botão do painel, para o estreito. `hidden`/`xl:hidden` e não duas
         instâncias vivas: `display:none` tira o elemento da árvore de
         acessibilidade, então em qualquer viewport existe **um** link para
         `/projects`.
       */}
-      <div className="w-calc flex-center md:hidden">
+      <div className="w-calc flex-center xl:hidden">
         <Botao href="/projects" icone={<SetaDireita />}>
           {t.deliveries.all}
         </Botao>
@@ -552,12 +531,12 @@ function LinhaDeRotulo({ pontas }: { pontas: readonly [string, string] }) {
   );
 }
 
-/** Os quadrados só existem junto da moldura, que é `md:`. */
+/** Os quadrados só existem junto da moldura, que é `lg:`. */
 function Marcador({ posicao }: { posicao: string }) {
   return (
     <span
       aria-hidden
-      className={`absolute hidden size-8 bg-accent md:block ${posicao}`}
+      className={`absolute hidden size-8 bg-accent lg:block ${posicao}`}
     />
   );
 }
@@ -634,7 +613,7 @@ function Celula({
   }, [deveTocar]);
   const alguem = emDestaque !== null;
   const este = emDestaque === project.slug;
-  const aberto = temPonteiro ? (este ? 1 : 0) : 1;
+  const aberto = !ehLargo || !temPonteiro || este ? 1 : 0;
 
   /**
    * A célula inteira é o link, como em navegador. Não há botão nenhum dentro
@@ -657,14 +636,14 @@ function Celula({
       onHoverEnd={aoSair}
       onFocus={aoEntrar}
       onBlur={aoSair}
-      className="group flex w-full flex-col gap-32 focus-visible:outline-2 focus-visible:outline-accent md:relative md:h-260 md:gap-0 md:border-r md:border-b md:border-[#57534e]"
+      className="group relative grid w-full min-w-0 cursor-inherit grid-cols-1 gap-y-4 focus-visible:outline-2 focus-visible:outline-accent lg:h-full lg:min-h-320 lg:cursor-pointer lg:grid-rows-[auto_minmax(24px,1fr)_auto] lg:gap-y-20 lg:border-r lg:border-b lg:border-[#57534e] lg:px-20 lg:py-24"
     >
       {/*
         A caixa da mídia. No estreito ela **é** o cartão (265 × 345, cantos de
         1.6rem); no largo ela cobre a célula inteira e vira o palco das três
         camadas do hover.
       */}
-      <div className="relative h-345 w-full overflow-clip rounded-[1.6rem] bg-ink/20 md:absolute md:inset-0 md:h-auto md:rounded-none md:bg-transparent">
+      <div className="relative col-start-1 row-start-1 mb-28 h-345 w-full overflow-clip rounded-[1.6rem] bg-ink/20 lg:absolute lg:inset-0 lg:col-auto lg:row-auto lg:mb-0 lg:h-auto lg:rounded-none lg:bg-transparent">
         {/* Só no estreito: no largo quem mostra a mídia é a camada única da
             malha, e um vídeo por célula devolveria as sete janelinhas.
 
@@ -751,7 +730,7 @@ function Celula({
               pousava em cima de uma manchete. Sem isto, `bg-ink/20` do
               cartão não escurece nada: ele fica **atrás** da imagem.
             */}
-            <div aria-hidden className="absolute inset-0 bg-black/15" />
+            <div aria-hidden className="absolute inset-0 bg-black/60" />
           </>
         )}
 
@@ -759,62 +738,50 @@ function Celula({
             a diferença entre as duas que produz o foco. */}
         <motion.div
           aria-hidden
-          className="absolute inset-0 hidden bg-black md:block"
+          className="absolute inset-0 hidden bg-black lg:block"
           animate={{ opacity: alguem ? (este ? 0.5 : 0.75) : 0 }}
         />
-
-        <motion.div
-          className="relative flex h-full items-center justify-center"
-          animate={{ opacity: alguem ? (este ? 1 : 0) : 1 }}
-          transition={TRANSICAO_DO_NOME}
-        >
-          {/* A caixa do wordmark: 20px de altura, 120 de largura.
-              O nome ocupa esse espaço em vez de exceder. */}
-          <h3
-            translate="no"
-            className="max-w-145 text-center type-m-24 leading-none text-ink md:max-w-120 md:type-m-16"
-          >
-            {project.nome}
-          </h3>
-        </motion.div>
       </div>
 
-      {/*
-        Os rótulos. No estreito ficam embaixo do cartão; no largo viram o
-        overlay do hover dentro da célula, com um em cada extremo.
-      */}
+      {/* Um único título. Em repouso ocupa o centro do card; aberto, tem
+          sua própria linha entre os rótulos, sem sobrepor a descrição. */}
       <motion.div
-        className="flex flex-col gap-4 md:absolute md:inset-0 md:justify-between md:gap-16 md:px-20 md:py-24 md:text-center"
-        animate={{ opacity: aberto }}
-        transition={TRANSICAO_DO_OVERLAY}
+        className={`pointer-events-none relative col-start-1 row-start-1 mb-28 flex items-center justify-center lg:mb-0 ${aberto ? "lg:row-start-2" : "lg:row-start-1 lg:row-end-4"}`}
+        animate={{ opacity: !ehLargo || !temPonteiro || !alguem || este ? 1 : 0 }}
+        transition={TRANSICAO_DO_NOME}
       >
-        {/* Os dois convergem ao mesmo tempo de direções opostas: este desce
-            (+10 → 0) enquanto o de baixo sobe (−10 → 0). Sem escalonamento
-            entre eles: o encontro é o gesto. */}
-        <motion.p
-          data-entregue-por={project.entreguePor}
-          className="type-eyebrow text-ink"
-          animate={{ opacity: aberto, y: aberto ? 0 : 10 }}
-          transition={TRANSICAO_DO_ROTULO}
+        <h3
+          translate="no"
+          className="max-w-233 rounded-[0.4rem] bg-black/70 px-12 py-8 text-center type-m-24 leading-none text-ink lg:max-w-full lg:rounded-none lg:bg-transparent lg:p-0 lg:type-m-20 lg:wrap-anywhere"
         >
-          {project.entreguePor ? (
-            <>
-              {rotuloDaAtribuicao}{" "}
-              <span translate="no">{project.entreguePor}</span>
-            </>
-          ) : (
-            rotuloDeEstudo
-          )}
-        </motion.p>
-
-        <motion.p
-          className="type-m-16 text-ink md:type-m-12 xl:type-m-16"
-          animate={{ opacity: aberto, y: aberto ? 0 : -10 }}
-          transition={TRANSICAO_DO_ROTULO}
-        >
-          {project.descricao[locale]}
-        </motion.p>
+          {project.nome}
+        </h3>
       </motion.div>
+
+      {/* Os dois convergem de direções opostas, em linhas independentes. */}
+      <motion.p
+        data-entregue-por={project.entreguePor}
+        className="relative col-start-1 row-start-2 font-mono text-[1.2rem] leading-[1.35] tracking-[0.192rem] text-ink uppercase lg:row-start-1 lg:text-center lg:tracking-[0.12rem] lg:wrap-anywhere"
+        animate={{ opacity: aberto, y: aberto ? 0 : 10 }}
+        transition={TRANSICAO_DO_ROTULO}
+      >
+        {project.entreguePor ? (
+          <>
+            {rotuloDaAtribuicao}{" "}
+            <span translate="no">{project.entreguePor}</span>
+          </>
+        ) : (
+          rotuloDeEstudo
+        )}
+      </motion.p>
+
+      <motion.p
+        className="relative col-start-1 row-start-3 type-m-16 text-ink lg:text-center lg:leading-[1.5] lg:wrap-anywhere"
+        animate={{ opacity: aberto, y: aberto ? 0 : -10 }}
+        transition={TRANSICAO_DO_ROTULO}
+      >
+        {project.descricao[locale]}
+      </motion.p>
     </LinkAnimado>
   );
 }

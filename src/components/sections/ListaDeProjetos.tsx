@@ -166,7 +166,7 @@ function Linha({ project }: { project: Project }) {
     <Link
       href={`/projects/${project.slug}`}
       data-projeto={project.slug}
-      className="group relative flex flex-col gap-8 border-t border-line py-16 transition-colors duration-300 hover:text-ink motion-reduce:transition-none md:h-64 md:flex-row md:items-center md:gap-32 md:py-0"
+      className="group relative flex flex-col gap-8 border-t border-line py-16 transition-colors duration-300 hover:text-ink motion-reduce:transition-none md:min-h-64 md:flex-row md:items-center md:gap-32 md:py-16"
     >
       <h3 className={`${COLUNAS.projeto} type-m-20 text-ink`}>
         {project.nome}

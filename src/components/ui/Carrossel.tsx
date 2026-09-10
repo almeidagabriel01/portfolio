@@ -183,14 +183,14 @@ export function Carrossel<T>({
     (indice: number) => {
       const passo = distancia();
       trilho.current?.scrollTo({
-        left: indice * passo,
+        left: Math.min(Math.max(indice, 0), itens.length - 1) * passo,
         // O `MotionConfig` não alcança scroll imperativo (AD-004): aqui a
         // preferência é lida na mão, senão o ponto move a tela de quem pediu para
         // nada se mover.
         behavior: semMovimento ? "auto" : "smooth",
       });
     },
-    [distancia, semMovimento],
+    [distancia, itens.length, semMovimento],
   );
 
   /**
@@ -205,16 +205,30 @@ export function Carrossel<T>({
    * escrita em `scrollLeft` é puxada de volta para o encaixe mais próximo e o
    * trilho fica preso no card em que começou: o dedo anda e a imagem não.
    */
-  const arrasto = useRef<{ x0: number; esquerda0: number; moveu: boolean } | null>(
-    null,
-  );
+  const arrasto = useRef<{
+    ponteiro: number;
+    x0: number;
+    esquerda0: number;
+    moveu: boolean;
+  } | null>(null);
+  const bloquearClique = useRef(false);
   const religarEncaixe = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const aoApontar = (evento: React.PointerEvent<HTMLUListElement>) => {
+  const podeRolar = () => {
     const elemento = trilho.current;
-    if (!elemento || evento.pointerType === "touch" || evento.button !== 0) return;
+    return !!elemento && elemento.scrollWidth > elemento.clientWidth + 1;
+  };
+
+  const aoApontar = (evento: React.PointerEvent<HTMLUListElement>) => {
+    bloquearClique.current = false;
+    const elemento = trilho.current;
+    if (
+      !elemento || !podeRolar() ||
+      evento.pointerType === "touch" || evento.button !== 0
+    ) return;
     if (religarEncaixe.current) clearTimeout(religarEncaixe.current);
     arrasto.current = {
+      ponteiro: evento.pointerId,
       x0: evento.clientX,
       esquerda0: elemento.scrollLeft,
       moveu: false,
@@ -222,9 +236,22 @@ export function Carrossel<T>({
     elemento.style.scrollSnapType = "none";
   };
 
+  const cancelarArrasto = () => {
+    if (!arrasto.current) return;
+    arrasto.current = null;
+    if (trilho.current) trilho.current.style.scrollSnapType = "";
+  };
+
   const aoMover = (evento: React.PointerEvent<HTMLUListElement>) => {
     const elemento = trilho.current;
-    if (!elemento || !arrasto.current) return;
+    if (
+      !elemento || !arrasto.current ||
+      evento.pointerId !== arrasto.current.ponteiro
+    ) return;
+    if (!(evento.buttons & 1)) {
+      cancelarArrasto();
+      return;
+    }
     const dx = evento.clientX - arrasto.current.x0;
     // 10px de folga separa arrasto de clique: abaixo disso o gesto continua
     // sendo um clique, e é por essa mesma marca que o clique é anulado depois.
@@ -235,6 +262,7 @@ export function Carrossel<T>({
       elemento.setPointerCapture(evento.pointerId);
     }
     if (arrasto.current.moveu) {
+      evento.preventDefault();
       elemento.scrollLeft = arrasto.current.esquerda0 - dx;
     }
   };
@@ -250,11 +278,15 @@ export function Carrossel<T>({
     }
 
     const passo = distancia();
-    if (passo <= 0) return;
+    if (passo <= 0) {
+      elemento.style.scrollSnapType = "";
+      return;
+    }
+    bloquearClique.current = true;
     ir(
       alvoDoArremesso(
         elemento.scrollLeft,
-        velocidade.current.v,
+        performance.now() - velocidade.current.t < 100 ? velocidade.current.v : 0,
         passo,
         itens.length,
       ),
@@ -277,23 +309,36 @@ export function Carrossel<T>({
     religarEncaixe.current = setTimeout(() => {
       elemento.style.scrollSnapType = "";
     }, 700);
-
-    /**
-     * Um bloqueador de clique de uso único, em captura. Arrastar por cima de um
-     * card que é link (o caso da `Entregas`) termina num `click` sobre o `<a>`,
-     * e sem isto o gesto de folhear navega para o projeto.
-     */
-    const engolir = (e: MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
-    elemento.addEventListener("click", engolir, { capture: true, once: true });
-    // Se o clique não vier (soltar fora do trilho), o listener some sozinho.
-    setTimeout(
-      () => elemento.removeEventListener("click", engolir, { capture: true }),
-      0,
-    );
   };
+
+  const aoTeclar = (evento: React.KeyboardEvent<HTMLUListElement>) => {
+    if (!podeRolar() || evento.altKey || evento.ctrlKey || evento.metaKey) return;
+    const alvo = evento.target as HTMLElement;
+    if (alvo.closest("input, textarea, select, [contenteditable=true]")) return;
+    const itemFocado = alvo.closest("li");
+    const indice = itemFocado
+      ? Array.from(evento.currentTarget.children).indexOf(itemFocado)
+      : ativo;
+    const destino = {
+      ArrowLeft: indice - 1,
+      ArrowRight: indice + 1,
+      Home: 0,
+      End: itens.length - 1,
+    }[evento.key];
+    if (destino === undefined) return;
+    evento.preventDefault();
+    const proximo = Math.min(Math.max(destino, 0), itens.length - 1);
+    if (itemFocado) {
+      const item = evento.currentTarget.children[proximo];
+      const interativo = item?.querySelector<HTMLElement>("a[href], button");
+      interativo?.focus({ preventScroll: true });
+    }
+    ir(proximo);
+  };
+
+  useEffect(() => () => {
+    if (religarEncaixe.current) clearTimeout(religarEncaixe.current);
+  }, []);
 
   /**
    * **Clicar num vizinho o traz para o centro.** É o caminho descobrível: o card
@@ -316,13 +361,33 @@ export function Carrossel<T>({
         ref={trilho}
         // `snap-x mandatory` e não `proximity`: com proximity o slide para
         // entre dois encaixes e o índice ativo fica ambíguo.
-        className={`flex cursor-grab snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] active:cursor-grabbing [&::-webkit-scrollbar]:hidden ${classeDoTrilho ?? ""}`}
+        className={`flex cursor-grab select-none snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] active:cursor-grabbing [&::-webkit-scrollbar]:hidden ${classeDoTrilho ?? ""}`}
         aria-label={rotulo}
         tabIndex={0}
         onPointerDown={aoApontar}
         onPointerMove={aoMover}
         onPointerUp={aoSoltar}
-        onPointerCancel={aoSoltar}
+        onPointerCancel={cancelarArrasto}
+        onLostPointerCapture={cancelarArrasto}
+        onPointerLeave={(evento) => {
+          if (!evento.currentTarget.hasPointerCapture(evento.pointerId)) {
+            cancelarArrasto();
+          }
+        }}
+        onDragStart={(evento) => {
+          // Links e imagens iniciam drag-and-drop nativo antes do nosso
+          // limiar. Impedi-lo mantém o mesmo gesto em todos os cartões.
+          if (podeRolar()) evento.preventDefault();
+        }}
+        onClickCapture={(evento) => {
+          // Só consome o clique que encerrou o arrasto. Um novo pointerdown
+          // ou uma ativação por teclado continua abrindo o link normalmente.
+          if (!bloquearClique.current || evento.detail === 0) return;
+          bloquearClique.current = false;
+          evento.preventDefault();
+          evento.stopPropagation();
+        }}
+        onKeyDown={aoTeclar}
       >
         {itens.map((item, indice) => (
           <li
