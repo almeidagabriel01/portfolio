@@ -236,7 +236,9 @@ test.describe("Rota /projects: janela viva do card de destaque", () => {
     }).first();
     await expect(card.locator("video, iframe")).toHaveCount(0);
     await expect(card.getByRole("link", { name: ptBR.projects.janela.emNovaAba })).toHaveCount(0);
-    await card.getByRole("button", { name: ptBR.projects.registraPreview.open, exact: true }).click();
+    await expect(card.getByRole("button", { name: ptBR.projects.registraPreview.open, exact: true })).toBeVisible();
+    await card.getByRole("button", { name: `${ptBR.projects.registraPreview.open} · Registra` }).click();
+    await expect(card.getByRole("button", { name: ptBR.projects.registraPreview.close, exact: true })).toBeVisible();
     await expect(card.getByText(ptBR.projects.registraPreview.captions[0])).toBeVisible();
     await card.getByRole("button", { name: ptBR.projects.registraPreview.actions[0] }).click();
     await expect(card.getByText(ptBR.projects.registraPreview.captions[1])).toBeVisible();
