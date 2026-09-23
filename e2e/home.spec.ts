@@ -103,30 +103,17 @@ test.describe("Rota /: hero", () => {
   test.describe("mídia do carrossel", () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
-    /**
-     * **Uma apresentação só, para os sete cartões.**
-     *
-     * Antes, dois projetos não tinham gravação e o carrossel misturava
-     * `<video>` com `<Image>` na mesma fileira. Não era só estética: o ramo do
-     * `<Image>` tinha um defeito que o do vídeo não tinha (o `lazy` do
-     * `next/image` decide pela viewport, e num trilho horizontal o cartão à
-     * direita nunca entra nela, então a captura ficava por carregar e a caixa
-     * aparecia cinza ao deslizar até lá).
-     *
-     * O sensor conta os elementos: sete cartões, sete `<video>`, nenhuma
-     * `<img>`. Um projeto novo sem gravação reprova aqui antes de chegar na
-     * tela de alguém.
-     */
-    test("todo cartão do carrossel é vídeo, e nenhum é imagem", async ({
+    /** Os dois apps novos mostram imagem; as sete gravações reais mantêm poster. */
+    test("gravações reais usam vídeo e os dois apps usam imagem", async ({
       page,
     }) => {
       await page.goto("/");
       const secao = 'section[aria-labelledby="entregas"]';
       await page.locator(`${secao} video`).first().scrollIntoViewIfNeeded();
 
-      expect(await page.locator(`${secao} ul li`).count()).toBe(7);
+      expect(await page.locator(`${secao} ul li`).count()).toBe(9);
       expect(await page.locator(`${secao} video`).count()).toBe(7);
-      expect(await page.locator(`${secao} img`).count()).toBe(0);
+      expect(await page.locator(`${secao} img`).count()).toBe(2);
 
       // Vídeo sem poster abriria a caixa cinza no primeiro quadro. O atributo
       // entra quando o bloco chega perto (ver o teste do fundo, abaixo), então
@@ -371,12 +358,14 @@ const EMPRESAS = {
       "Software house",
       "Desde jul 2025",
       "Dois sócios, ambos desenvolvedores",
+      "Registra",
     ],
     proops: [
-      "ERP para empresas de serviço",
+      "ERP e app pessoal",
       "Desde out 2025",
       "Três sócios, dois na engenharia",
       "cliente pagante",
+      "app pessoal",
     ],
   },
   en: {
@@ -385,12 +374,14 @@ const EMPRESAS = {
       "Software house",
       "Since Jul 2025",
       "Two partners, both developers",
+      "Registra",
     ],
     proops: [
-      "ERP for service companies",
+      "ERP and personal app",
       "Since Oct 2025",
       "Three partners, two in engineering",
       "paying client",
+      "personal app",
     ],
   },
 };
@@ -533,11 +524,11 @@ test.describe("Rota /: seção de empresas (SEC-02, SEC-03)", () => {
  * profissionais — um estudo com `entreguePor` seria dado errado.
  */
 const ENTREGAS_REGIAO = {
-  pt: "O que está no ar.",
-  en: "What is live.",
+  pt: "O que eu construí.",
+  en: "What I built.",
 };
 test.describe("Rota /: seção de entregas (SEC-10, SEC-18)", () => {
-  test("a grade tem os sete projetos, entregas antes de estudos", async ({
+  test("a grade tem os nove projetos, entregas antes de estudos", async ({
     page,
   }) => {
     await page.goto("/");
@@ -551,7 +542,9 @@ test.describe("Rota /: seção de entregas (SEC-10, SEC-18)", () => {
       "SoftCode",
       "Barbalog",
       "LyftConnect",
-      "ProOps",
+      "ProOps ERP",
+      "ProOps App",
+      "Registra",
       "Alura Space",
       "Store Flow",
       "Olá Mundo",
@@ -565,7 +558,7 @@ test.describe("Rota /: seção de entregas (SEC-10, SEC-18)", () => {
         .evaluateAll((nodes) =>
           nodes.map((node) => node.getAttribute("data-entregue-por")),
         ),
-    ).toEqual(["SoftCode", "SoftCode", "SoftCode", "ProOps"]);
+    ).toEqual(["SoftCode", "SoftCode", "SoftCode", "ProOps", "ProOps", "SoftCode"]);
   });
 
   /**
@@ -586,6 +579,8 @@ test.describe("Rota /: seção de entregas (SEC-10, SEC-18)", () => {
       "/projects/barbalog",
       "/projects/lyftconnect",
       "/projects/proops",
+      "/projects/proops-app",
+      "/projects/registra",
       "/projects/alura-space",
       "/projects/store-flow",
       "/projects/ola-mundo",
@@ -602,7 +597,7 @@ test.describe("Rota /: seção de entregas (SEC-10, SEC-18)", () => {
       .locator("[data-entregue-por]")
       .evaluateAll((nodes) => nodes.map((node) => node.textContent ?? ""));
 
-    expect(atribuicoes).toHaveLength(4);
+    expect(atribuicoes).toHaveLength(6);
     for (const atribuicao of atribuicoes) {
       // O rótulo sozinho não basta: o valor tem que vir junto.
       expect(atribuicao.trim().length).toBeGreaterThan(

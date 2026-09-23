@@ -32,7 +32,7 @@ test.describe("Rota /projects/[slug]: case page", () => {
 
     await expect(
       page.getByRole("link", { name: new RegExp(ptBR.caseStudy.visit) }),
-    ).toHaveAttribute("href", barbalog.link);
+    ).toHaveAttribute("href", barbalog.link!);
   });
 
   // PORT-14: o segundo projeto de trabalho, com os destaques.
@@ -41,10 +41,22 @@ test.describe("Rota /projects/[slug]: case page", () => {
   }) => {
     await page.goto("/projects/proops");
 
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("ProOps");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("ProOps ERP");
     for (const destaque of proops.case.destaques.pt) {
       await expect(page.getByText(destaque)).toBeVisible();
     }
+  });
+
+  test("os cases da ProOps usam as páginas dos produtos; Registra não inventa site", async ({ page }) => {
+    for (const [slug, url] of [
+      ["proops", "https://erp.proops.com.br/"],
+      ["proops-app", "https://app.proops.com.br/"],
+    ]) {
+      await page.goto(`/projects/${slug}`);
+      await expect(page.getByRole("link", { name: new RegExp(ptBR.caseStudy.visit) })).toHaveAttribute("href", url);
+    }
+    await page.goto("/projects/registra");
+    await expect(page.getByRole("link", { name: new RegExp(ptBR.caseStudy.visit) })).toHaveCount(0);
   });
 
   // PORT-15: status HTTP real, não "a UI parece vazia".
@@ -131,7 +143,9 @@ test.describe("Rota /projects/[slug]: navegação entre cases (SEC-14, SEC-16)",
       "Olá Mundo",
       "SoftCode",
       "Barbalog",
-      "ProOps",
+      "ProOps ERP",
+      "ProOps App",
+      "Registra",
     ]);
     expect(
       await outros
@@ -144,6 +158,8 @@ test.describe("Rota /projects/[slug]: navegação entre cases (SEC-14, SEC-16)",
       "/projects/softcode",
       "/projects/barbalog",
       "/projects/proops",
+      "/projects/proops-app",
+      "/projects/registra",
     ]);
   });
 
@@ -154,11 +170,11 @@ test.describe("Rota /projects/[slug]: navegação entre cases (SEC-14, SEC-16)",
 
     await page
       .getByRole("region", { name: ptBR.caseStudy.others })
-      .getByRole("link", { name: /ProOps/ })
+      .getByRole("link", { name: "ProOps ERP" })
       .click();
 
     await page.waitForURL("/projects/proops");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("ProOps");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("ProOps ERP");
   });
 
   test("a navegação entre cases renderiza em inglês", async ({ page }) => {

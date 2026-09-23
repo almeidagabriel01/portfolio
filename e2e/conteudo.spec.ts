@@ -24,6 +24,8 @@ const ROTAS = [
   "/projects/barbalog",
   "/projects/lyftconnect",
   "/projects/proops",
+  "/projects/proops-app",
+  "/projects/registra",
 ];
 
 async function trocarParaIngles(page: Page) {
@@ -92,7 +94,7 @@ test.describe("O case da ProOps não nomeia cliente (SEC-03)", () => {
       if (locale === "en") await trocarParaIngles(page);
 
       const caso = await page
-        .getByRole("region", { name: "ProOps" })
+        .getByRole("region", { name: "ProOps ERP" })
         .innerText();
 
       // Controle positivo: sem isto, um seletor que não casasse nada devolveria
@@ -131,7 +133,7 @@ test.describe("Nenhuma chave crua na case page (SEC-05)", () => {
  * "limpeza" (ou trocá-lo por um número inventado) quebre o gate.
  */
 test.describe("Nenhum marcador de pendência chega à tela", () => {
-  for (const slug of ["barbalog", "lyftconnect", "proops"]) {
+  for (const slug of ["barbalog", "lyftconnect", "proops", "proops-app", "registra"]) {
     test(`o case do ${slug} não publica nenhum [VERIFICAR]`, async ({
       page,
     }) => {

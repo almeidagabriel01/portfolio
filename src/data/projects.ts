@@ -27,8 +27,10 @@ export interface Project {
   /** Chave de rota: precisa ser único e URL-safe. */
   slug: string;
   nome: string;
-  /** URL externa ao vivo. */
-  link: string;
+  /** URL pública do produto, quando existe uma experiência acessível no navegador. */
+  link?: string;
+  /** Aplicativos sem site público usam uma experiência interativa local. */
+  preview?: "interactive";
   grupo: ProjectGroup;
   /**
    * Invariante: presente em todo `produto`/`cliente`, ausente em todo `estudo`.
@@ -37,75 +39,21 @@ export interface Project {
    */
   entreguePor?: DeliveredBy;
   descricao: Localized<string>;
+  /** Vídeo de hover da home, quando há gravação real do site (760 × 474). */
+  video?: string;
+  /** Fallback H.264 para navegadores que não reproduzem o WebM. */
+  videoMp4?: string;
+  /** Primeiro quadro da gravação, usado enquanto ela decodifica. */
+  poster?: string;
   /**
-   * Caminho público de um trecho gravado do site ao vivo, em `webm`.
-   *
-   * É um vídeo atrás de cada célula da grade que faz o hover parecer que a
-   * grade abriu uma janela. Imagem parada lê como screenshot colado. Estes são
-   * gravações do próprio site rolando, capturadas por Playwright a partir de
-   * `link`, cortadas em 8,00s e reencodadas em VP9.
-   *
-   * **Obrigatório, e é o ponto.** Enquanto era opcional, dois dos sete
-   * projetos não tinham vídeo e *toda* superfície que mostra mídia carregava
-   * um ramo para cada caso: a célula da home era `<video>` num projeto e
-   * `<Image>` no vizinho, com física, timing e modos de falha diferentes. O
-   * campo obrigatório apaga os ramos em vez de mantê-los sincronizados.
-   *
-   * O perfil é fechado e as sete gravações o cumprem: **760 × 474, SAR 1:1,
-   * 24 fps, 8,00s**. Quem gravar uma nova segue isso — o aspecto entra no
-   * recorte do `object-cover`, e meio por cento de diferença dá um passo
-   * lateral visível quando o vídeo assume o lugar do poster.
-   */
-  video: string;
-  /**
-   * O mesmo trecho em H.264. **Não é redundância**: o VP9 em WebM só toca no
-   * Safari do iOS a partir do 17.4, e antes disso a célula ficaria no poster
-   * para sempre. O `<video>` declara os dois e o browser escolhe: quem sabe
-   * VP9 baixa o WebM, que é ~40% menor; o resto baixa este.
-   */
-  videoMp4: string;
-  /**
-   * Primeiro quadro do `video`, extraído dele mesmo no build da gravação.
-   *
-   * O `<video>` monta no hover e leva um instante para decodificar; sem
-   * `poster` a célula fica **preta** nesse intervalo. Era o que acontecia com a
-   * LyftConnect, a única sem `screenshot`, porque as outras cinco emprestavam o
-   * screenshot e por isso o defeito só aparecia nela.
-   *
-   * O poster **não** é o piso sozinho: `play()` derruba a *show poster flag*
-   * antes de existir quadro decodificado, e nesse vão o `<video>` não
-   * representa nada. Quem tapa isso é o mesmo arquivo repetido como fundo CSS
-   * do elemento. Ver o `<video>` da `Celula`, em `Entregas.tsx`.
-   *
-   * Sai do próprio vídeo, e não do screenshot, para o poster e o primeiro
-   * quadro serem a mesma imagem: com fontes diferentes há um salto visível no
-   * instante em que o vídeo assume.
-   *
-   * **Mesma imagem não basta: tem que ser o mesmo aspecto.** Os seis vídeos
-   * são 760 × 474 e os posters saíam em 380 × 238, meio por cento mais altos.
-   * Sob `object-cover` a caixa recorta pela largura, e meio por cento de
-   * aspecto move o recorte ~1,75px em cada borda: o quadro dava um passo lateral
-   * quando o vídeo assumia, no meio da abertura. Agora saem em 380 × 237, que é
-   * o aspecto do vídeo em cheio:
-   *
-   *     ffmpeg -i <n>.webm -frames:v 1 -vf scale=380:237:flags=lanczos \
-   *            -c:v libwebp -quality 75 <n>-poster.webp
-   */
-  poster: string;
-  /**
-   * Caminho público do screenshot do site ao vivo, 1280 × 800, gerado por
-   * Playwright a partir de `link`.
-   *
-   * Era opcional pelo mesmo motivo que o `video`: a LyftConnect devolveu HTTP
-   * 522 numa captura antiga e ficou sem imagem, e daí saiu um ramo "slide sem
-   * imagem" no `CarrosselDeProjetos` que só ela exercitava. O apex responde
-   * 200 (ver o comentário do `link` dela) e a captura foi refeita: o ramo não
-   * tem mais razão de existir, e o campo obrigatório garante que ele não
-   * volta.
+   * Imagem em repouso, 1280 × 800. Sites usam captura da página pública;
+   * Registra usa capa editorial identificada como case.
    */
   screenshot: string;
+  /** Capturas WebP já comprimidas são servidas diretamente, sem nova conversão. */
+  screenshotUnoptimized?: boolean;
   /**
-   * A case page do projeto. **Obrigatória**, pelo mesmo motivo que `video`.
+   * A case page do projeto. **Obrigatória** para todas as entregas.
    *
    * Era opcional, e daí saía o par de comportamentos: o cartão da home levava
    * ao case num projeto e abria o site em aba nova no vizinho, com a rota
@@ -410,16 +358,16 @@ export const portfolioProjects: Project[] = [
     videoMp4: "/projects/proops.mp4",
     poster: "/projects/proops-poster.webp",
     screenshot: "/projects/proops.png",
-    nome: "ProOps",
-    link: "https://www.proops.com.br/",
+    nome: "ProOps ERP",
+    link: "https://erp.proops.com.br/",
     grupo: "produto",
     entreguePor: "ProOps",
     descricao: {
       pt: "ERP para empresas de serviços: propostas, CRM, financeiro e IA integrada.",
       en: "ERP for service companies: proposals, CRM, finance and built-in AI.",
     },
-    // Redigido só a partir do que o site publica hoje (fetch de
-    // https://www.proops.com.br/) e da stack detectada nos headers da resposta.
+    // Redigido a partir da página pública do ERP
+    // (https://erp.proops.com.br/) e do repositório do produto.
     // Os números do dashboard na landing page (saldo, propostas, conversão) são
     // dados de demonstração da própria peça. NÃO são métricas de uso e não
     // entram aqui como resultado.
@@ -464,6 +412,87 @@ export const portfolioProjects: Project[] = [
           "Stated integrations with WhatsApp, Google Calendar, Stripe, Pix and Asaas.",
           "Multi-tenant architecture with per-client isolation, TLS and LGPD compliance, as stated on the site.",
           "The dashboard figures on the landing page are demo data: the product publishes no real metrics.",
+        ],
+      },
+    },
+  },
+  {
+    slug: "proops-app",
+    screenshot: "/projects/proops-app.webp",
+    screenshotUnoptimized: true,
+    nome: "ProOps App",
+    link: "https://app.proops.com.br/",
+    grupo: "produto",
+    entreguePor: "ProOps",
+    descricao: {
+      pt: "App pessoal para finanças, notas e lembretes com agente de IA pelo WhatsApp.",
+      en: "Personal app for finances, notes and reminders with an AI agent on WhatsApp.",
+    },
+    // Fonte: Personal-ProOps-app/README.md, PRODUCT.md, package.json e agent/README.md.
+    // O link é a página pública do app, não uma URL de loja nem uma sessão autenticada.
+    case: {
+      contexto: {
+        pt: "Aplicativo pessoal da ProOps para organizar dinheiro e rotina. Mensagens de texto ou áudio pelo WhatsApp podem gerar lançamentos, notas e lembretes; no app, a pessoa acompanha contas, cartões, faturas, orçamento e projeção de caixa.",
+        en: "ProOps' personal app for organising money and daily life. Text or voice messages through WhatsApp can create transactions, notes and reminders; in the app, people can follow accounts, cards, bills, budgets and cash-flow forecasts.",
+      },
+      papel: {
+        pt: "Sócio da ProOps e integrante da engenharia do produto. Trabalho no aplicativo mobile, nos fluxos financeiros e no agente que interpreta mensagens e integra o WhatsApp ao Supabase. É um produto distinto do ERP.",
+        en: "Partner at ProOps and part of the product engineering team. I work on the mobile app, financial flows and the agent that interprets messages and connects WhatsApp to Supabase. It is a separate product from the ERP.",
+      },
+      stack: ["Expo", "React Native", "TypeScript", "Supabase", "PostgreSQL", "FastAPI", "LangGraph", "Gemini", "Groq Whisper", "Meta Cloud API", "Cloud Run"],
+      destaques: {
+        pt: [
+          "Visão Hoje reúne saldo, gastos do dia, próximas contas e lembretes para orientar decisões imediatas.",
+          "Contas, cartões, faturas, parcelamentos, metas, orçamentos e projeção de caixa compartilham o mesmo domínio financeiro.",
+          "Agente em Python recebe mensagens de texto e áudio, organiza ações e confirma o resultado pelo WhatsApp.",
+          "Notas e lembretes ficam disponíveis no app junto da rotina financeira, inclusive quando criados pelo agente.",
+        ],
+        en: [
+          "The Today view brings together balances, today's spending, upcoming bills and reminders for immediate decisions.",
+          "Accounts, cards, bills, instalments, goals, budgets and cash-flow forecasts share the same financial domain.",
+          "A Python agent receives text and voice messages, organises actions and confirms the result through WhatsApp.",
+          "Notes and reminders sit alongside finances in the app, including those created through the agent.",
+        ],
+      },
+    },
+  },
+  {
+    slug: "registra",
+    screenshot: "/projects/registra.webp",
+    screenshotUnoptimized: true,
+    nome: "Registra",
+    preview: "interactive",
+    grupo: "cliente",
+    entreguePor: "SoftCode",
+    descricao: {
+      pt: "App Android para digitalizar formulários industriais com operação offline e trilha de auditoria.",
+      en: "Android app for digitising industrial forms with offline operation and an audit trail.",
+    },
+    // Fontes: registra/docs/DIGITALIZACAO-PACS.md, docs/REPASSE-SESSAO.md,
+    // app/build.gradle.kts e supabase/README.md. A capa usa somente a marca;
+    // não publica documentos, dados ou telas da operação do cliente.
+    case: {
+      contexto: {
+        pt: "Produto desenvolvido pela SoftCode para substituir formulários de autocontrole em papel por registros digitais em tablets Android. A operação precisa continuar sem conexão e manter autoria, integridade e histórico de cada registro.",
+        en: "A SoftCode product that replaces paper self-monitoring forms with digital records on Android tablets. The operation must continue without a connection and preserve authorship, integrity and the history of every record.",
+      },
+      papel: {
+        pt: "Na SoftCode, participo da engenharia do aplicativo Android e do painel administrativo. O trabalho cobre formulários configuráveis, fluxo offline, sincronização entre dispositivos e mecanismos de assinatura e auditoria.",
+        en: "At SoftCode, I work on the Android app and the admin panel. The work covers configurable forms, offline flows, device synchronisation, signing and audit mechanisms.",
+      },
+      stack: ["Kotlin", "Jetpack Compose", "Room", "SQLCipher", "Android Keystore", "Google Tink", "Hilt", "WorkManager", "Supabase", "Edge Functions"],
+      destaques: {
+        pt: [
+          "Formulários configuráveis são preenchidos offline no tablet; registros finalizados passam a ser imutáveis.",
+          "Assinaturas ECDSA P-256, hashes SHA-256 e verificação de integridade sustentam a trilha de auditoria.",
+          "Transferência tablet a tablet por Wi-Fi e sincronização opcional por tenant permitem operar sem rede contínua.",
+          "Painel web administra usuários e modelos de formulário.",
+        ],
+        en: [
+          "Configurable forms are filled in offline on a tablet; finalised records become immutable.",
+          "ECDSA P-256 signatures, SHA-256 hashes and integrity checks support the audit trail.",
+          "Tablet-to-tablet transfer over Wi-Fi and optional per-tenant sync support work without continuous connectivity.",
+          "A web panel manages users and form templates.",
         ],
       },
     },

@@ -255,6 +255,9 @@ export async function relatorioDeContraste(
     let seq = 0;
     for (const el of document.querySelectorAll(seletor)) {
       if ((el.textContent ?? "").trim().length === 0) continue;
+      // Elementos da ilustração do Registra não estão na árvore acessível;
+      // os textos equivalentes estão no título e na legenda de cada etapa.
+      if (el.closest('[aria-hidden="true"]')) continue;
       if (el.getClientRects().length === 0) continue;
       const id = seq++;
       el.setAttribute("data-contraste", String(id));

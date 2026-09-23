@@ -3,7 +3,7 @@
 import Image from "next/image";
 
 /**
- * A janela do card: uma captura em repouso, o site **de verdade** quando aberta.
+ * A janela do card: imagem em repouso, site real incorporado ao abrir.
  *
  * A moldura é de largura cheia, um projeto por linha: o bloco de destaque é
  * uma coluna (`flex w-full flex-col gap-100`), e é o que dá ao
@@ -14,7 +14,7 @@ import Image from "next/image";
  * algo em que se clica. Com a barra a caixa se anuncia como janela antes de
  * qualquer texto, e o aviso no meio diz o que o clique faz.
  *
- * **Não carrega sozinha.** Três `<iframe>` de terceiros no primeiro paint
+ * **Não carrega sozinha.** Vários `<iframe>` de terceiros no primeiro paint
  * custariam três sites inteiros para quem só passou os olhos, e o bloco fica
  * acima da dobra.
  *
@@ -25,6 +25,7 @@ import Image from "next/image";
 export function JanelaViva({
   src,
   poster,
+  posterUnoptimized,
   titulo,
   abrir,
   fechar,
@@ -33,22 +34,21 @@ export function JanelaViva({
   viva,
   aoAlternar,
 }: {
-  src: string;
+  src?: string;
   poster: string;
+  posterUnoptimized?: boolean;
   titulo: string;
   abrir: string;
   fechar: string;
   aviso: string;
   emNovaAba: string;
   /**
-   * Controlada de fora: numa grade de oito, quem decide é o bloco, e ele só
-   * deixa **uma** viva por vez. Com estado interno, abrir as oito carregaria
-   * oito sites de terceiros ao mesmo tempo.
+   * Controlada de fora: a grade deixa só um site incorporado aberto por vez.
    */
   viva: boolean;
   aoAlternar: () => void;
 }) {
-  const host = new URL(src).host.replace(/^www\./, "");
+  const host = src ? new URL(src).host.replace(/^www\./, "") : titulo;
 
   return (
     <div className="flex flex-col overflow-clip rounded-[1.6rem] border border-line bg-surface">
@@ -78,15 +78,17 @@ export function JanelaViva({
             navegação dele, sem moldura) não devia ter de sair da rota para
             achar o endereço.
           */}
-          <a
-            href={src}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-8 type-button uppercase text-ink/55 transition-colors duration-300 hover:text-ink motion-reduce:transition-none"
-          >
-            {emNovaAba}
-            <span aria-hidden>↗</span>
-          </a>
+          {src && (
+            <a
+              href={src}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-8 type-button uppercase text-ink/55 transition-colors duration-300 hover:text-ink motion-reduce:transition-none"
+            >
+              {emNovaAba}
+              <span aria-hidden>↗</span>
+            </a>
+          )}
         </span>
       </div>
 
@@ -100,7 +102,7 @@ export function JanelaViva({
       {/* Proporção fixa: na grade de duas colunas a moldura tem ~650px, e uma
           altura dirigida por `svh` deixaria os cards de alturas diferentes. */}
       <div className="relative aspect-[4/3] md:aspect-[16/10]">
-        {viva ? (
+        {viva && src ? (
           <iframe
             src={src}
             title={titulo}
@@ -119,6 +121,7 @@ export function JanelaViva({
             */}
             <Image
               src={poster}
+              unoptimized={posterUnoptimized}
               alt=""
               fill
               sizes="(min-width: 768px) 90vw, 100vw"
@@ -127,7 +130,7 @@ export function JanelaViva({
             <button
               type="button"
               onClick={aoAlternar}
-              className="group/janela absolute inset-0 flex flex-col items-center justify-center gap-16 px-24 text-center bg-black/45 transition-colors duration-300 hover:bg-black/25 focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none"
+              className="group/janela absolute inset-0 flex flex-col items-center justify-center gap-16 bg-black/45 px-24 text-center transition-colors duration-300 hover:bg-black/25 focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none"
             >
               <span className="type-eyebrow text-ink">{aviso}</span>
               <span className="flex items-center gap-8 rounded-[0.4rem] bg-ink/8 px-16 py-8 type-button uppercase text-ink backdrop-blur-sm transition-transform duration-300 group-hover/janela:scale-105 motion-reduce:transition-none">

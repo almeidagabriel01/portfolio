@@ -143,15 +143,16 @@ async function prepararDesktop(page: Page, largura: number, locale: Locale) {
   }
 
   const cartoes = page.locator(`${SECAO} ul li a`);
-  await expect(cartoes).toHaveCount(7);
+  await expect(cartoes).toHaveCount(9);
   await cartoes.first().scrollIntoViewIfNeeded();
   await page.waitForTimeout(500);
 }
 
 for (const largura of DESKTOPS) {
-  test(`os sete cartões cabem e separam os textos em ${largura}px`, async ({
+  test(`os nove cartões cabem e separam os textos em ${largura}px`, async ({
     page,
   }) => {
+    test.setTimeout(90_000);
     for (const locale of ["pt", "en"] as const) {
       await prepararDesktop(page, largura, locale);
       await verificarCartoes(page, `${locale} repouso`);
@@ -182,7 +183,7 @@ test.describe("descrição em viewport estreita", () => {
     await page.goto("/");
     await page.waitForFunction(() => Boolean(window.__lenis));
     const cartao = page.locator(`${SECAO} ul li a`).first();
-    await expect(page.locator(`${SECAO} ul li a`)).toHaveCount(7);
+    await expect(page.locator(`${SECAO} ul li a`)).toHaveCount(9);
     await cartao.scrollIntoViewIfNeeded();
     await page.mouse.move(2, 2);
     await page.waitForTimeout(500);
@@ -205,7 +206,7 @@ test.describe("descrição em toque", () => {
     expect(await page.evaluate(() => matchMedia("(hover: hover)").matches)).toBe(false);
 
     const cartoes = page.locator(`${SECAO} ul li a`);
-    await expect(cartoes).toHaveCount(7);
+    await expect(cartoes).toHaveCount(9);
     await cartoes.first().scrollIntoViewIfNeeded();
     await page.waitForTimeout(500);
 
@@ -223,7 +224,7 @@ test.describe("descrição em toque", () => {
         );
       }),
     );
-    expect(descricoesVisiveis).toEqual([true, true, true, true, true, true, true]);
+    expect(descricoesVisiveis).toEqual(Array(9).fill(true));
     await verificarCartoes(page, "touch estreito");
   });
 });

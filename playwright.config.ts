@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = "http://localhost:3000";
+const port = Number(process.env.PORTFOLIO_E2E_PORT ?? "3000");
+const baseURL = `http://localhost:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -17,7 +18,7 @@ export default defineConfig({
   // (`__lenis`, `__backgroundRenderer`, `__routeState`) somem do bundle, que
   // é exatamente o que o T22 exige do build de produção real.
   webServer: {
-    command: "npm run build && npm run start",
+    command: `npm run build && npm run start -- -p ${port}`,
     env: { NEXT_PUBLIC_E2E: "1" },
     url: baseURL,
     reuseExistingServer: !process.env.CI,

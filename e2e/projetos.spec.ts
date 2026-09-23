@@ -16,7 +16,7 @@ declare global {
  * dado é o que está sob teste.
  */
 // A SoftCode entrou: o site da software house da qual ele é sócio.
-const TRABALHO = ["SoftCode", "Barbalog", "LyftConnect", "ProOps"];
+const TRABALHO = ["SoftCode", "Barbalog", "LyftConnect", "ProOps ERP", "ProOps App", "Registra"];
 const ESTUDO = [
   "Alura Space",
   "Store Flow",
@@ -115,6 +115,8 @@ test.describe("Rota /projects: hierarquia de projetos", () => {
       "/projects/lyftconnect",
       "/projects/ola-mundo",
       "/projects/proops",
+      "/projects/proops-app",
+      "/projects/registra",
       "/projects/softcode",
       "/projects/store-flow",
     ]);
@@ -216,6 +218,47 @@ test.describe("Rota /projects: janela viva do card de destaque", () => {
     await expect(page.locator("iframe")).toHaveCount(0);
   });
 
+  test("ERP e app abrem dentro da janela; só o header leva a uma nova aba", async ({ page }) => {
+    await page.goto("/projects");
+    for (const [name, url] of [
+      ["ProOps ERP", "https://erp.proops.com.br/"],
+      ["ProOps App", "https://app.proops.com.br/"],
+    ]) {
+      const card = page.locator("li").filter({
+        has: page.getByRole("heading", { level: 3, name }),
+      }).first();
+      const external = card.getByRole("link", { name: new RegExp(ptBR.projects.janela.emNovaAba) });
+      await expect(external).toHaveAttribute("href", url);
+      await expect(external).toHaveAttribute("target", "_blank");
+      await expect(card.locator("video, iframe")).toHaveCount(0);
+
+      await card.getByRole("button", { name: ptBR.projects.janela.abrir, exact: true }).click();
+      await expect(card.locator("iframe")).toHaveAttribute("src", url);
+      await expect(card.locator("video")).toHaveCount(0);
+      await card.getByRole("button", { name: ptBR.projects.janela.fechar }).click();
+      await expect(card.locator("iframe")).toHaveCount(0);
+    }
+  });
+
+  test("Registra apresenta três etapas interativas, sem vídeo ou site inventado", async ({ page }) => {
+    await page.goto("/projects");
+    const card = page.locator("li").filter({
+      has: page.getByRole("heading", { level: 3, name: "Registra" }),
+    }).first();
+    await expect(card.locator("video, iframe")).toHaveCount(0);
+    await expect(card.getByRole("link", { name: ptBR.projects.janela.emNovaAba })).toHaveCount(0);
+    await card.getByRole("button", { name: ptBR.projects.registraPreview.open, exact: true }).click();
+    await expect(card.getByText(ptBR.projects.registraPreview.captions[0])).toBeVisible();
+    await card.getByRole("button", { name: ptBR.projects.registraPreview.actions[0] }).click();
+    await expect(card.getByText(ptBR.projects.registraPreview.captions[1])).toBeVisible();
+    await card.getByRole("button", { name: ptBR.projects.registraPreview.actions[1] }).click();
+    await expect(card.getByText(ptBR.projects.registraPreview.captions[2])).toBeVisible();
+    await card.getByRole("button", { name: ptBR.projects.registraPreview.actions[2] }).click();
+    await expect(card.getByText(ptBR.projects.registraPreview.captions[0])).toBeVisible();
+    await card.getByRole("button", { name: ptBR.projects.registraPreview.close, exact: true }).click();
+    await expect(card.getByText(ptBR.projects.registraPreview.coverTitle)).toBeVisible();
+  });
+
   // O card deixou de ser um link inteiro: um `<iframe>` dentro de uma âncora
   // rouba o clique do site embutido. O link agora é o título.
   test("o título do card continua levando à case page", async ({ page }) => {
@@ -254,7 +297,7 @@ test.describe("Rota /projects: stack transversal (SEC-13, SEC-16)", () => {
     // Next.js está nas três entregas; Stripe só na ProOps. Uma agregação que
     // ignorasse o projeto de origem passaria na primeira e falharia na segunda.
     await expect(stack.locator('[data-tecnologia="Next.js"]')).toContainText(
-      "Barbalog · LyftConnect · ProOps",
+      "Barbalog · LyftConnect · ProOps ERP",
     );
     await expect(stack.locator('[data-tecnologia="Stripe"]')).toContainText(
       "ProOps",
@@ -358,7 +401,7 @@ test.describe("Rota /projects: stack transversal (SEC-13, SEC-16)", () => {
     // Nome próprio de tecnologia não se traduz: a lista sai do dado nos dois
     // idiomas.
     await expect(stack.locator('[data-tecnologia="Next.js"]')).toContainText(
-      "Barbalog · LyftConnect · ProOps",
+      "Barbalog · LyftConnect · ProOps ERP",
     );
   });
 });
