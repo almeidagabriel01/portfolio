@@ -194,7 +194,7 @@ export const ptBR = {
     janela: {
       abrir: "Abrir ao vivo",
       fechar: "Fechar",
-      aviso: "Site publicado. Clique para navegar aqui dentro",
+      aviso: "Clique para explorar o site ao vivo aqui dentro.",
       emNovaAba: "Abrir o site",
     },
     registraPreview: {
@@ -469,7 +469,7 @@ export const enUS = {
     janela: {
       abrir: "Open live",
       fechar: "Close",
-      aviso: "Live site. Click to browse it right here",
+      aviso: "Click to explore the live site right here.",
       emNovaAba: "Open the site",
     },
     registraPreview: {
