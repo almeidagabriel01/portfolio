@@ -130,10 +130,10 @@ export function JanelaViva({
             <button
               type="button"
               onClick={aoAlternar}
-              className="group/janela absolute inset-0 flex flex-col items-start justify-end p-16 text-left transition-colors duration-300 hover:bg-black/5 focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none"
+              className="group/janela absolute inset-0 flex flex-col items-start justify-end bg-black/30 p-16 text-left transition-colors duration-300 hover:bg-black/35 focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none"
             >
-              <span className="flex rounded-[0.6rem] border border-white/15 bg-[#111]/95 px-14 py-11 text-white shadow-[0_12px_32px_#0005] transition-transform duration-300 group-hover/janela:translate-y-[-2px] motion-reduce:transition-none">
-                <span className="sr-only">{aviso}</span>
+              <span className="flex max-w-[240px] flex-col gap-7 rounded-[0.6rem] border border-white/20 bg-[#111]/90 px-14 py-11 text-white shadow-[0_12px_32px_#0005] transition-transform duration-300 group-hover/janela:translate-y-[-2px] motion-reduce:transition-none">
+                <span className="type-sub leading-snug text-white/85">{aviso}</span>
                 <span className="flex items-center gap-8 type-button uppercase text-white">
                   {abrir}
                   <span aria-hidden>→</span>
