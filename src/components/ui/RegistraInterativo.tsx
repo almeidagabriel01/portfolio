@@ -25,7 +25,7 @@ export function RegistraInterativo({
   return (
     <div
       data-registra-preview
-      className="overflow-clip rounded-[1.6rem] border border-line bg-[#0b0d12] text-[#e6e8ee]"
+      className="min-w-0 overflow-clip rounded-[1.6rem] border border-line bg-[#0b0d12] text-[#e6e8ee]"
     >
       <div className="flex h-48 items-center justify-between border-b border-white/15 px-16">
         <span className="flex items-center gap-8 type-sub uppercase tracking-[0.2em]">

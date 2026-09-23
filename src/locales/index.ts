@@ -81,8 +81,9 @@ export const ptBR = {
    * SEC-10 e SEC-18: as entregas com a empresa que as assina. `by` é o rótulo
    * da atribuição: só é renderizado quando existe `entreguePor`, nunca sozinho.
    *
-   * A grade mostra os nove projetos, então o rótulo fala de nove. O
-   * rótulo do painel são duas linhas de duas pontas cada, o que dá as quatro
+   * A home mostra seis entregas profissionais; a página de projetos inclui
+   * também o Store Flow. O rótulo do painel são duas linhas de duas pontas
+   * cada, o que dá as quatro
    * etapas de uma entrega na ordem em que acontecem.
    *
    * **O título é curto por exigência do molde**, não por gosto: ele é
@@ -94,11 +95,11 @@ export const ptBR = {
    * a fazer antes de mexer aqui é a largura da frase no corpo do estreito.
    */
   deliveries: {
-    label: "Nove projetos",
+    label: "Seis entregas",
     title: "O que eu ",
     highlight: "construí.",
     description:
-      "Seis entregas profissionais pelas empresas das quais sou sócio e três projetos de estudo.",
+      "Sites, produtos e aplicativos criados pela SoftCode e pela ProOps.",
     by: "Entregue por",
     all: "Ver todos os projetos",
     panelTop: ["Escopo", "Código"] as [string, string],
@@ -143,7 +144,7 @@ export const ptBR = {
     projetos: {
       rotulo: "Projetos",
       /**
-       * Não repetem o que a página já diz: o rótulo da lista é "Nove projetos,
+       * Não repetem o que a página já diz: o rótulo da lista é "Sete projetos,
        * todos com case escrito" e o título dela é "Nenhum deles começou
        * pronto". Falar de contagem ou de case aqui era ler a mesma frase duas
        * vezes com uma rolagem de distância.
@@ -175,7 +176,7 @@ export const ptBR = {
    * seção de entregas da home, que já apresenta o trabalho construído.
    */
   projects: {
-    label: "Nove projetos, todos com case escrito",
+    label: "Sete projetos, todos com case escrito",
     title: "Nenhum deles começou ",
     highlight: "pronto.",
     table: { projeto: "Projeto", oQueE: "O que é", grupo: "Grupo" },
@@ -398,11 +399,11 @@ export const enUS = {
     },
   },
   deliveries: {
-    label: "Nine projects",
+    label: "Six deliveries",
     title: "What I ",
     highlight: "built.",
     description:
-      "Six professional deliveries through the companies I co-own and three study projects.",
+      "Sites, products and apps built through SoftCode and ProOps.",
     by: "Delivered by",
     all: "See all projects",
     panelTop: ["Scope", "Code"] as [string, string],
@@ -441,7 +442,7 @@ export const enUS = {
     },
   },
   projects: {
-    label: "Nine projects, each with a written case",
+    label: "Seven projects, each with a written case",
     title: "None of them started ",
     highlight: "finished.",
     table: { projeto: "Project", oQueE: "What it is", grupo: "Group" },

@@ -11,17 +11,10 @@ declare global {
   }
 }
 
-/**
- * Os nomes vêm do spec (PORT-13 + as correções C1/C2 da v3), não do array: o
- * dado é o que está sob teste.
- */
+/** Os nomes esperados são independentes do array que está sob teste. */
 // A SoftCode entrou: o site da software house da qual ele é sócio.
 const TRABALHO = ["SoftCode", "Barbalog", "LyftConnect", "ProOps ERP", "ProOps App", "Registra"];
-const ESTUDO = [
-  "Alura Space",
-  "Store Flow",
-  "Olá Mundo",
-];
+const ESTUDO = ["Store Flow"];
 
 /**
  * `textContent` e não `innerText`: os rótulos de grupo levam `text-transform:
@@ -61,13 +54,12 @@ function projectDescription(nome: string, locale: "pt" | "en") {
 
 test.describe("Rota /projects: hierarquia de projetos", () => {
   // PORT-13
-  test("o grupo Trabalho vem antes de Estudos, com as três entregas nessa ordem", async ({
+  test("o grupo Trabalho vem antes de Estudos, com as seis entregas nessa ordem", async ({
     page,
   }) => {
     await page.goto("/projects");
 
-    // A tabela é uma só, e a ordem dela **é** o agrupamento: os três de
-    // trabalho primeiro, os cinco estudos depois.
+    // A tabela é uma só, e a ordem dela **é** o agrupamento.
     expect(await gruposDaTabela(page)).toEqual([
       ...TRABALHO.map(() => ptBR.projects.groups.trabalho),
       ...ESTUDO.map(() => ptBR.projects.groups.estudo),
@@ -78,7 +70,7 @@ test.describe("Rota /projects: hierarquia de projetos", () => {
     ]);
   });
 
-  // PORT-13 + C2: a outra metade do agrupamento, agora com cinco estudos.
+  // PORT-13: a outra metade do agrupamento.
   test("o grupo Estudos lista os exercícios de curso", async ({ page }) => {
     await page.goto("/projects");
 
@@ -110,10 +102,8 @@ test.describe("Rota /projects: hierarquia de projetos", () => {
       links.map((link) => link.getAttribute("href")),
     );
     expect([...new Set(destinos)].sort()).toEqual([
-      "/projects/alura-space",
       "/projects/barbalog",
       "/projects/lyftconnect",
-      "/projects/ola-mundo",
       "/projects/proops",
       "/projects/proops-app",
       "/projects/registra",
@@ -121,9 +111,8 @@ test.describe("Rota /projects: hierarquia de projetos", () => {
       "/projects/store-flow",
     ]);
 
-    // O caminho que mudou: `alura-space` é estudo e agora aponta para dentro.
-    expect(await linha(page, "alura-space").getAttribute("href")).toBe(
-      "/projects/alura-space",
+    expect(await linha(page, "store-flow").getAttribute("href")).toBe(
+      "/projects/store-flow",
     );
   });
 
@@ -145,8 +134,8 @@ test.describe("Rota /projects: hierarquia de projetos", () => {
       linha(page, "barbalog").getByText(projectDescription("Barbalog", "pt")),
     ).toBeVisible();
     await expect(
-      linha(page, "alura-space").getByText(
-        projectDescription("Alura Space", "pt"),
+      linha(page, "store-flow").getByText(
+        projectDescription("Store Flow", "pt"),
       ),
     ).toBeVisible();
   });
@@ -168,8 +157,8 @@ test.describe("Rota /projects: hierarquia de projetos", () => {
       linha(page, "barbalog").getByText(projectDescription("Barbalog", "en")),
     ).toBeVisible();
     await expect(
-      linha(page, "alura-space").getByText(
-        projectDescription("Alura Space", "en"),
+      linha(page, "store-flow").getByText(
+        projectDescription("Store Flow", "en"),
       ),
     ).toBeVisible();
   });

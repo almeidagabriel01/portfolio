@@ -110,7 +110,7 @@ test.describe("Rota /projects/[slug]: case page", () => {
 /**
  * SEC-14 e SEC-16: a navegação entre cases.
  *
- * A metade "sendo o único com case a seção some" não é observável aqui: os três
+ * A metade "sendo o único com case a seção some" não é observável aqui: os sete
  * projetos com case existem no dado real. Ela é provada no unitário, com um
  * dado construído (`OutrosCases.test.tsx`).
  */
@@ -138,9 +138,7 @@ test.describe("Rota /projects/[slug]: navegação entre cases (SEC-14, SEC-16)",
         .getByRole("heading", { level: 3 })
         .evaluateAll((nodes) => nodes.map((node) => node.textContent)),
     ).toEqual([
-      "Alura Space",
       "Store Flow",
-      "Olá Mundo",
       "SoftCode",
       "Barbalog",
       "ProOps ERP",
@@ -152,9 +150,7 @@ test.describe("Rota /projects/[slug]: navegação entre cases (SEC-14, SEC-16)",
         .getByRole("link")
         .evaluateAll((links) => links.map((link) => link.getAttribute("href"))),
     ).toEqual([
-      "/projects/alura-space",
       "/projects/store-flow",
-      "/projects/ola-mundo",
       "/projects/softcode",
       "/projects/barbalog",
       "/projects/proops",
