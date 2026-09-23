@@ -47,7 +47,9 @@ test.describe("Headers de segurança", () => {
      * precisa se embutir.
      */
     const origens = [
-      ...new Set(portfolioProjects.map((p) => new URL(p.link).origin)),
+      ...new Set(portfolioProjects.flatMap((p) =>
+        p.link && !p.preview ? [new URL(p.link).origin] : [],
+      )),
     ].sort();
     expect(frameSrc).toBe(`frame-src ${origens.join(" ")}`);
     expect(frameSrc).not.toContain("*");

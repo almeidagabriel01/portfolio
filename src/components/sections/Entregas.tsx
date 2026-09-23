@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
+import Image from "next/image";
 import { LinkDeRota as Link } from "@/components/ui/LinkDeRota";
 import { useEffect, useRef, useState } from "react";
 import { Campo } from "@/components/canvas/Campo";
@@ -15,12 +16,8 @@ import { EASE } from "@/lib/motion";
 import { useStore } from "@/store";
 
 /**
- * A grade mostra **todos** os projetos, em duas fileiras que são as duas
- * naturezas do trabalho: as entregas profissionais em cima, os exercícios de
- * curso embaixo. É a mesma divisão que a descrição da seção já anunciava
- * ("quatro entregas profissionais [...] e três exercícios de curso"), e é o que
- * permite as duas fileiras terem larguras de célula diferentes sem parecer
- * sobra: elas não são a mesma coisa cortada, são dois conjuntos.
+ * A grade mostra todos os nove projetos: duas fileiras de entregas
+ * profissionais e uma de estudos, com três células por fileira.
  *
  * Antes daqui saía um `.slice(0, 6)` que deixava um estudo de fora, e o rótulo
  * dizia "Seis projetos publicados" enquanto `/projects` listava sete.
@@ -37,15 +34,16 @@ const ESTUDOS = portfolioProjects.filter(
 const NA_GRADE: Project[] = [...PROFISSIONAIS, ...ESTUDOS];
 
 /**
- * Quantas células cada fileira tem. O recorte da mídia sai daqui, então as duas
- * contas nunca divergem do que está na tela.
+   * Quantas células cada fileira tem. O recorte da mídia sai daqui; ao adicionar
+   * projetos, esta lista e o `col-span-4` da grade precisam ser revistos juntos.
  *
- * **A grade em si é CSS** (`grid-cols-12`, as quatro primeiras em `col-span-3`
- * e as três últimas em `col-span-4`): classe do Tailwind é texto-fonte, não dá
+ * **A grade em si é CSS** (`grid-cols-12`, cada célula em `col-span-4`):
+ * classe do Tailwind é texto-fonte, não dá
  * para montar por template. Mudando o número de projetos de um grupo, é lá que
  * o span acompanha — e 12 só divide bem por 4 e por 3.
  */
-const CELULAS_POR_FILEIRA = [PROFISSIONAIS.length, ESTUDOS.length] as const;
+// Nove projetos: duas fileiras profissionais e uma de estudos, três por linha.
+const CELULAS_POR_FILEIRA = [3, 3, 3] as const;
 
 /**
  * As transições da célula, que **não** são a mesma de propósito.
@@ -251,14 +249,7 @@ export function Entregas() {
   const ehLargo = useMediaQuery("(min-width: 64rem)");
   const mostraPainel = useMediaQuery("(min-width: 80rem)");
 
-  /*
-    Aqui existia um `preload` das capturas do hover: a camada do largo montava
-    **vazia** por ~330ms nas duas células que não tinham vídeo, porque o poster
-    dos vídeos já vinha baixado pelo HTML do estreito e a captura não. As duas
-    células agora têm vídeo como todas as outras (`Project.video` é
-    obrigatório), então não há mais uma segunda mídia para aquecer: o poster
-    serve as duas apresentações e desce uma vez só.
-  */
+  // As capturas sem vídeo entram só quando o card é apontado no desktop.
 
   const indiceEmDestaque = NA_GRADE.findIndex(
     (project) => project.slug === emDestaque,
@@ -370,15 +361,9 @@ export function Entregas() {
                       a janela abre e o quadro chega no mesmo instante, sem
                       sobra deslizando depois que não há mais o que abrir.
                     */}
-                    {/*
-                      Uma mídia só, para os sete. Aqui havia um ramo com
-                      `<Image>` para os projetos sem gravação: a mesma célula
-                      abria com vídeo num projeto e com captura parada no
-                      vizinho, e as duas versões tinham timing e modo de falha
-                      diferentes. Com `Project.video` obrigatório o ramo não
-                      tem mais o que atender.
-                    */}
-                    <motion.video
+                    {/* A grade mantém a mesma abertura para vídeo e captura. */}
+                    {destacado.video ? (
+                      <motion.video
                       poster={destacado.poster}
                       autoPlay
                       muted
@@ -400,7 +385,19 @@ export function Entregas() {
                       {/* WebM primeiro: quem sabe VP9 baixa o menor. */}
                       <source src={destacado.video} type="video/webm" />
                       <source src={destacado.videoMp4} type="video/mp4" />
-                    </motion.video>
+                      </motion.video>
+                    ) : (
+                      <motion.div
+                        initial={{ scale: 1.08 }}
+                        animate={{ scale: 1 }}
+                        transition={TRANSICAO_DA_ABERTURA}
+                        style={{
+                          transformOrigin: origemDaCelula(indiceEmDestaque),
+                          backgroundImage: `url("${destacado.screenshot}")`,
+                        }}
+                        className="size-full bg-cover bg-top bg-no-repeat"
+                      />
+                    )}
                     {/* Com o scrim da célula, mantém contraste mesmo sobre
                         um quadro branco do vídeo. */}
                     <div className="absolute inset-0 bg-black/35" />
@@ -425,13 +422,12 @@ export function Entregas() {
               centrados) e vira malha de três colunas no largo.
             */
             /*
-              No largo, duas fileiras com contagens diferentes: `grid-cols-12`
-              com as quatro entregas profissionais em `col-span-3` e os três
-              estudos em `col-span-4`. As variantes `nth-child` mantêm o
+              No largo, três fileiras de três: `grid-cols-12` com todas as
+              células em `col-span-4`. A variante mantém o
               trilho único que o estreito precisa para o snap — duplicar a
               marcação custaria dois lugares para corrigir a cada entrega nova.
             */
-            classeDoTrilho="gap-32 px-[calc((100vw-26.5rem)*0.5)] scroll-px-[calc((100vw-26.5rem)*0.5)] lg:grid lg:auto-rows-fr lg:grid-cols-12 lg:cursor-auto lg:select-text lg:gap-0 lg:overflow-visible lg:px-0 lg:[&>*:nth-child(-n+4)]:col-span-3 lg:[&>*:nth-child(n+5)]:col-span-4"
+            classeDoTrilho="gap-32 px-[calc((100vw-26.5rem)*0.5)] scroll-px-[calc((100vw-26.5rem)*0.5)] lg:grid lg:auto-rows-fr lg:grid-cols-12 lg:cursor-auto lg:select-text lg:gap-0 lg:overflow-visible lg:px-0 lg:[&>*]:col-span-4"
             classeDoItem="w-265 min-w-0 shrink-0 snap-center lg:w-full"
             // Os pontos não têm o que navegar quando todas as células estão na
             // tela ao mesmo tempo.
@@ -647,14 +643,9 @@ function Celula({
         {/* Só no estreito: no largo quem mostra a mídia é a camada única da
             malha, e um vídeo por célula devolveria as sete janelinhas.
 
-            Aqui existia um segundo ramo, com `<Image>`, para os projetos que
-            não tinham gravação — dois dos sete. Ele trazia junto o problema de
-            carregamento que o ramo do vídeo não tem: o `lazy` do `next/image`
-            decide pela viewport, e num trilho horizontal o cartão seis
-            posições à direita nunca entra nela, então a captura ficava por
-            carregar e a caixa aparecia cinza ao deslizar até lá. Dois ramos,
-            dois modos de falha. Com `Project.video` obrigatório sobra um. */}
-        {!ehLargo && (
+            Para capturas sem vídeo, o carregamento vira eager quando o bloco
+            se aproxima; o lazy nativo não enxerga slides fora da viewport. */}
+        {!ehLargo && (project.video ? (
           <>
             <video
               ref={midia}
@@ -732,7 +723,20 @@ function Celula({
             */}
             <div aria-hidden className="absolute inset-0 bg-black/60" />
           </>
-        )}
+        ) : (
+          <>
+            <Image
+              src={project.screenshot}
+              unoptimized={project.screenshotUnoptimized}
+              alt=""
+              fill
+              sizes="265px"
+              loading={blocoPerto ? "eager" : "lazy"}
+              className="object-cover object-top"
+            />
+            <div aria-hidden className="absolute inset-0 bg-black/60" />
+          </>
+        ))}
 
         {/* O scrim escurece **mais** as irmãs (0.75) do que a apontada (0.5). É
             a diferença entre as duas que produz o foco. */}

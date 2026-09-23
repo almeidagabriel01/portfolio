@@ -14,7 +14,7 @@ import { useTranslations } from "@/hooks/useTranslations";
  */
 const COMPANIES = [
   { nome: "SoftCode", href: "https://softcodedev.com.br/" },
-  { nome: "ProOps", href: "https://www.proops.com.br/" },
+  { nome: "ProOps", href: "https://proops.com.br/" },
 ];
 
 /**

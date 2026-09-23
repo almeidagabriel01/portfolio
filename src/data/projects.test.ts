@@ -28,14 +28,14 @@ describe("modelo de três grupos (SEC-17)", () => {
       .map((project) => project.nome);
     // A SoftCode entrou como produto próprio junto com a ProOps: o site da
     // software house é dela, não de cliente.
-    expect(produto).toEqual(["SoftCode", "ProOps"]);
+    expect(produto).toEqual(["SoftCode", "ProOps ERP", "ProOps App"]);
   });
 
   it("Barbalog e LyftConnect são entregas para cliente", () => {
     const cliente = portfolioProjects
       .filter((project) => project.grupo === "cliente")
       .map((project) => project.nome);
-    expect(cliente).toEqual(["Barbalog", "LyftConnect"]);
+    expect(cliente).toEqual(["Barbalog", "LyftConnect", "Registra"]);
   });
 
   it("todo projeto pertence a um dos três grupos", () => {
@@ -56,7 +56,7 @@ describe("invariante entreguePor (SEC-17)", () => {
 
     // Piso: um filtro quebrado devolveria lista vazia e o laço abaixo passaria
     // por vacuidade.
-    expect(entregas).toHaveLength(4);
+    expect(entregas).toHaveLength(6);
     for (const project of entregas) {
       expect(
         project.entreguePor,
@@ -85,8 +85,10 @@ describe("invariante entreguePor (SEC-17)", () => {
     expect(bySlug("lyftconnect")?.entreguePor).toBe("SoftCode");
   });
 
-  it("a ProOps é entregue pela própria ProOps", () => {
+  it("os dois produtos ProOps são entregues pela própria ProOps", () => {
     expect(bySlug("proops")?.entreguePor).toBe("ProOps");
+    expect(bySlug("proops-app")?.entreguePor).toBe("ProOps");
+    expect(bySlug("registra")?.entreguePor).toBe("SoftCode");
   });
 });
 
@@ -155,8 +157,8 @@ describe("descrições sem correção na v3 permanecem intactas", () => {
     expect(bySlug(slug)?.descricao).toEqual({ pt, en });
   });
 
-  it("a lista passa a ter 6 entradas", () => {
-    expect(portfolioProjects).toHaveLength(7);
+  it("a lista contém os nove projetos", () => {
+    expect(portfolioProjects).toHaveLength(9);
   });
 
   it("toda descrição está preenchida nos dois idiomas", () => {
@@ -189,6 +191,8 @@ describe("conteúdo de case (PORT-14)", () => {
       "barbalog",
       "lyftconnect",
       "proops",
+      "proops-app",
+      "registra",
     ]);
   });
 
@@ -202,7 +206,7 @@ describe("conteúdo de case (PORT-14)", () => {
     }
   });
 
-  it.each(["softcode", "barbalog", "lyftconnect", "proops"])(
+  it.each(["softcode", "barbalog", "lyftconnect", "proops", "proops-app", "registra"])(
     "%s tem contexto e papel preenchidos nos dois idiomas",
     (slug) => {
       const projectCase = bySlug(slug)?.case;
@@ -213,7 +217,7 @@ describe("conteúdo de case (PORT-14)", () => {
     },
   );
 
-  it.each(["softcode", "barbalog", "lyftconnect", "proops"])(
+  it.each(["softcode", "barbalog", "lyftconnect", "proops", "proops-app", "registra"])(
     "%s tem destaques com o mesmo número de itens em PT e EN",
     (slug) => {
       const destaques = bySlug(slug)?.case?.destaques;
@@ -225,7 +229,7 @@ describe("conteúdo de case (PORT-14)", () => {
     },
   );
 
-  it.each(["softcode", "barbalog", "lyftconnect", "proops"])("%s declara a stack usada", (slug) => {
+  it.each(["softcode", "barbalog", "lyftconnect", "proops", "proops-app", "registra"])("%s declara a stack usada", (slug) => {
     expect(bySlug(slug)?.case?.stack.length).toBeGreaterThan(0);
   });
 
@@ -233,7 +237,7 @@ describe("conteúdo de case (PORT-14)", () => {
   // então o marcador sai. Escopo de campo, não do case inteiro: um
   // `not.toContain` sobre o case todo derrubaria junto o marcador de métrica,
   // que é correto que fique.
-  it.each(["softcode", "barbalog", "lyftconnect", "proops"])(
+  it.each(["softcode", "barbalog", "lyftconnect", "proops", "proops-app", "registra"])(
     "%s declara o papel real, sem [VERIFICAR], nos dois idiomas (SEC-11)",
     (slug) => {
       const papel = bySlug(slug)?.case?.papel;
@@ -273,7 +277,7 @@ describe("conteúdo de case (PORT-14)", () => {
    * (Firebase, Firestore, Cloud Functions, Gemini); e onde não há número
    * publicável o texto **diz isso**, em vez de prometer um número futuro.
    */
-  it.each(["softcode", "barbalog", "lyftconnect", "proops"])(
+  it.each(["softcode", "barbalog", "lyftconnect", "proops", "proops-app", "registra"])(
     "%s não deixa nenhum [VERIFICAR] no case, em nenhum idioma",
     (slug) => {
       expect(JSON.stringify(bySlug(slug)?.case)).not.toContain("[VERIFICAR]");
@@ -342,10 +346,23 @@ describe("restrição de conteúdo sobre o cliente da ProOps (SEC-03)", () => {
 });
 
 describe("link ao vivo", () => {
-  it("todo link é uma URL absoluta com origem derivável", () => {
+  it("ERP e app apontam para suas páginas; Registra usa apresentação interativa", () => {
+    expect(bySlug("proops")?.link).toBe("https://erp.proops.com.br/");
+    expect(bySlug("proops-app")?.link).toBe("https://app.proops.com.br/");
+    expect(bySlug("proops")?.preview).toBeUndefined();
+    expect(bySlug("proops-app")?.preview).toBeUndefined();
+    expect(bySlug("registra")?.link).toBeUndefined();
+    expect(bySlug("registra")?.preview).toBe("interactive");
+  });
+
+  it("todo link público é uma URL HTTPS", () => {
     for (const project of portfolioProjects) {
-      expect(() => new URL(project.link).origin).not.toThrow();
-      expect(new URL(project.link).protocol).toBe("https:");
+      const link = project.link;
+      if (!link) {
+        continue;
+      }
+      expect(() => new URL(link).origin).not.toThrow();
+      expect(new URL(link).protocol).toBe("https:");
     }
   });
 });
@@ -366,7 +383,7 @@ describe("screenshots do carrossel (UI-09)", () => {
     expect(portfolioProjects.length).toBeGreaterThan(3);
 
     for (const project of portfolioProjects) {
-      expect(project.screenshot).toMatch(/^\/projects\/[a-z0-9-]+\.png$/);
+      expect(project.screenshot).toMatch(/^\/projects\/[a-z0-9-]+\.(?:png|webp)$/);
       expect(
         existsSync(join(process.cwd(), "public", project.screenshot)),
         `screenshot declarado e ausente do disco: ${project.screenshot}`,
@@ -384,7 +401,7 @@ describe("screenshots do carrossel (UI-09)", () => {
     const { existsSync } = await import("node:fs");
     const { join } = await import("node:path");
     const declarados = portfolioProjects.flatMap((project) =>
-      [project.video, project.videoMp4, project.poster],
+      [project.video, project.videoMp4, project.poster].filter((caminho): caminho is string => Boolean(caminho)),
     );
 
     expect(declarados.length).toBeGreaterThan(0);
@@ -397,34 +414,18 @@ describe("screenshots do carrossel (UI-09)", () => {
     }
   });
 
-  /**
-   * **Todo projeto tem as quatro mídias — este é o piso, não um "andam em
-   * trio".**
-   *
-   * A versão anterior media coerência (`poster` se e somente se `video`), e
-   * passava num dado em que dois dos sete não tinham vídeo nenhum. Era daí que
-   * saía a divergência de comportamento: a mesma célula da home era `<video>`
-   * num projeto e `<Image>` no vizinho, e cada superfície de mídia carregava
-   * um ramo por caso.
-   *
-   * O tipo já exige os quatro campos, mas tipo não sobrevive a `as any` nem a
-   * fixture parcial de teste — e é assim que a divergência voltaria. O piso é
-   * aqui.
-   */
-  it("todo projeto declara vídeo, fallback H.264, poster e screenshot", () => {
+  it("gravações têm fallback e poster; projetos sem vídeo mantêm imagem", () => {
     for (const project of portfolioProjects) {
-      expect(project.video, `sem vídeo: ${project.slug}`).toMatch(
-        /^\/projects\/[a-z0-9-]+\.webm$/,
-      );
-      // Sem o H.264 o iOS anterior ao 17.4 fica no poster para sempre.
-      expect(project.videoMp4, `sem fallback H.264: ${project.slug}`).toMatch(
-        /^\/projects\/[a-z0-9-]+\.mp4$/,
-      );
-      expect(project.poster, `sem poster: ${project.slug}`).toMatch(
-        /^\/projects\/[a-z0-9-]+-poster\.webp$/,
-      );
+      if (project.video) {
+        expect(project.video).toMatch(/^\/projects\/[a-z0-9-]+\.webm$/);
+        expect(project.videoMp4, `sem fallback H.264: ${project.slug}`).toMatch(/^\/projects\/[a-z0-9-]+\.mp4$/);
+        expect(project.poster, `sem poster: ${project.slug}`).toMatch(/^\/projects\/[a-z0-9-]+-poster\.webp$/);
+      } else {
+        expect(project.videoMp4).toBeUndefined();
+        expect(project.poster).toBeUndefined();
+      }
       expect(project.screenshot, `sem screenshot: ${project.slug}`).toMatch(
-        /^\/projects\/[a-z0-9-]+\.png$/,
+        /^\/projects\/[a-z0-9-]+\.(?:png|webp)$/,
       );
     }
   });
@@ -445,12 +446,8 @@ describe("screenshots do carrossel (UI-09)", () => {
 
     expect(
       profissionais,
-      "a copy diz quatro entregas profissionais",
-    ).toHaveLength(4);
-    // Os estudos completam as seis células; sobrar é esperado (vão para
-    // `/projects`), faltar deixaria buraco na segunda fileira.
-    expect(estudos.length, "a copy diz três exercícios").toBeGreaterThanOrEqual(
-      3,
-    );
+      "a copy diz seis entregas profissionais",
+    ).toHaveLength(6);
+    expect(estudos, "a copy diz três projetos de estudo").toHaveLength(3);
   });
 });

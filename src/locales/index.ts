@@ -44,19 +44,19 @@ export const ptBR = {
     title: "Sócio em ",
     highlight: "duas empresas.",
     description:
-      "As entregas abaixo não são trabalhos avulsos. Saem de duas empresas das quais sou sócio: uma software house e um ERP em produção.",
+      "As entregas abaixo saem de duas empresas das quais sou sócio: uma software house e a ProOps, com um ERP em produção e um app pessoal.",
     entries: [
       {
         tipo: "Software house",
         desde: "Desde jul 2025",
         sociedade: "Dois sócios, ambos desenvolvedores",
-        desc: "Produtos digitais sob demanda, do modelo de dados à interface. Atuamos do escopo com o cliente até o deploy e a manutenção depois da publicação.",
+        desc: "Produtos digitais sob demanda, de sites a apps Android como o Registra, do modelo de dados à interface. Atuamos do escopo ao deploy e à manutenção.",
       },
       {
-        tipo: "ERP para empresas de serviço",
+        tipo: "ERP e app pessoal",
         desde: "Desde out 2025",
         sociedade: "Três sócios, dois na engenharia",
-        desc: "Propostas comerciais em PDF com pré-visualização em tempo real, CRM em kanban, fluxo de caixa, agenda e a Lia, assistente de IA que preenche formulários e responde sobre a operação. No ar, com cliente pagante.",
+        desc: "O ERP reúne propostas comerciais em PDF, CRM, financeiro, agenda e a Lia, assistente de IA. O app pessoal organiza finanças, notas e lembretes com interação pelo WhatsApp. O ERP está em produção, com cliente pagante.",
       },
     ],
   },
@@ -74,14 +74,14 @@ export const ptBR = {
       cargo: "Empresas próprias",
       empresa: "SoftCode · ProOps",
       periodo: "Desde 2025",
-      desc: "A software house que entrega produto digital sob demanda e o ERP que está no ar com cliente pagante.",
+      desc: "A software house que entrega produtos digitais sob demanda e a ProOps, com um ERP em produção e um app pessoal.",
     },
   },
   /**
    * SEC-10 e SEC-18: as entregas com a empresa que as assina. `by` é o rótulo
    * da atribuição: só é renderizado quando existe `entreguePor`, nunca sozinho.
    *
-   * A grade mostra os sete projetos, então o rótulo fala de sete. O
+   * A grade mostra os nove projetos, então o rótulo fala de nove. O
    * rótulo do painel são duas linhas de duas pontas cada, o que dá as quatro
    * etapas de uma entrega na ordem em que acontecem.
    *
@@ -94,11 +94,11 @@ export const ptBR = {
    * a fazer antes de mexer aqui é a largura da frase no corpo do estreito.
    */
   deliveries: {
-    label: "Sete projetos publicados",
-    title: "O que está ",
-    highlight: "no ar.",
+    label: "Nove projetos",
+    title: "O que eu ",
+    highlight: "construí.",
     description:
-      "Quatro entregas profissionais, pelas empresas das quais sou sócio, e três exercícios de curso que continuam de pé.",
+      "Seis entregas profissionais pelas empresas das quais sou sócio e três projetos de estudo.",
     by: "Entregue por",
     all: "Ver todos os projetos",
     panelTop: ["Escopo", "Código"] as [string, string],
@@ -143,7 +143,7 @@ export const ptBR = {
     projetos: {
       rotulo: "Projetos",
       /**
-       * Não repetem o que a página já diz: o rótulo da lista é "Sete projetos,
+       * Não repetem o que a página já diz: o rótulo da lista é "Nove projetos,
        * todos com case escrito" e o título dela é "Nenhum deles começou
        * pronto". Falar de contagem ou de case aqui era ler a mesma frase duas
        * vezes com uma rolagem de distância.
@@ -172,10 +172,10 @@ export const ptBR = {
   /**
    * A `/projects`: o rótulo é um **fato de escala** e o título é uma
    * **afirmação**, não uma descrição do que a página lista. Nada aqui repete a
-   * seção de entregas da home, que já diz o que está no ar.
+   * seção de entregas da home, que já apresenta o trabalho construído.
    */
   projects: {
-    label: "Sete projetos, todos com case escrito",
+    label: "Nove projetos, todos com case escrito",
     title: "Nenhum deles começou ",
     highlight: "pronto.",
     table: { projeto: "Projeto", oQueE: "O que é", grupo: "Grupo" },
@@ -195,6 +195,34 @@ export const ptBR = {
       fechar: "Fechar",
       aviso: "Site publicado. Clique para navegar aqui dentro",
       emNovaAba: "Abrir o site",
+    },
+    registraPreview: {
+      eyebrow: "Case interativo · app Android",
+      open: "Explorar o fluxo",
+      close: "Fechar",
+      coverTitle: "O registro continua sem sinal.",
+      coverBody: "Da ficha em papel ao documento com autoria e integridade verificáveis.",
+      illustration: "Demonstração ilustrativa, sem dados de cliente",
+      stages: ["Captura", "Offline", "Assinatura"] as [string, string, string],
+      titles: [
+        "Do papel ao tablet.",
+        "O trabalho não espera a rede.",
+        "Cada registro deixa prova.",
+      ] as [string, string, string],
+      captions: [
+        "Formulários de autocontrole ganham campos digitais para a operação em tablet.",
+        "O preenchimento e a guarda local continuam mesmo quando a conexão cai.",
+        "Ao finalizar, a assinatura e o hash permitem verificar autoria e integridade.",
+      ] as [string, string, string],
+      actions: ["Continuar sem rede", "Finalizar registro", "Recomeçar"] as [string, string, string],
+      paper: "Ficha de controle",
+      form: "Registro de autocontrole",
+      field: "Verificação",
+      note: "Observação",
+      local: "Salvo no dispositivo",
+      pending: "Aguardando conexão",
+      final: "Registro finalizado",
+      verified: "Integridade verificada",
     },
     groups: {
       trabalho: "Trabalho",
@@ -307,7 +335,7 @@ export const ptBR = {
     title: "Onde a conversa ",
     highlight: "começa.",
     description:
-      "Produto digital novo pela SoftCode ou o ERP da ProOps: nos dois casos o começo é o mesmo e-mail.",
+      "Produto digital pela SoftCode ou uma solução da ProOps: o começo é o mesmo e-mail.",
     button: "Escrever um e-mail",
     networks: "Redes",
     from: "De onde sai o trabalho",
@@ -342,19 +370,19 @@ export const enUS = {
     title: "Partner at ",
     highlight: "two companies.",
     description:
-      "The work below isn't a string of one-off gigs. It comes out of two companies I co-own: a software house and an ERP in production.",
+      "The work below comes from two companies I co-own: a software house and ProOps, with an ERP in production and a personal app.",
     entries: [
       {
         tipo: "Software house",
         desde: "Since Jul 2025",
         sociedade: "Two partners, both developers",
-        desc: "Digital products on demand, from the data model to the interface. We work from scoping with the client through to deploy and maintenance after launch.",
+        desc: "Digital products on demand, from sites to Android apps such as Registra, from the data model to the interface. We work from scoping through deploy and maintenance.",
       },
       {
-        tipo: "ERP for service companies",
+        tipo: "ERP and personal app",
         desde: "Since Oct 2025",
         sociedade: "Three partners, two in engineering",
-        desc: "Commercial proposals as PDFs with real-time preview, a kanban CRM, cash flow, scheduling, and Lia, an AI assistant that fills in forms and answers questions about the operation. Live, with a paying client.",
+        desc: "The ERP combines PDF proposals, CRM, finance, scheduling and Lia, an AI assistant. The personal app organises finances, notes and reminders through WhatsApp. The ERP is in production, with a paying client.",
       },
     ],
   },
@@ -366,15 +394,15 @@ export const enUS = {
       cargo: "Companies of my own",
       empresa: "SoftCode · ProOps",
       periodo: "Since 2025",
-      desc: "The software house that delivers digital products on demand, and the ERP that is live with a paying client.",
+      desc: "The software house that delivers digital products on demand and ProOps, with an ERP in production and a personal app.",
     },
   },
   deliveries: {
-    label: "Seven shipped projects",
-    title: "What is ",
-    highlight: "live.",
+    label: "Nine projects",
+    title: "What I ",
+    highlight: "built.",
     description:
-      "Four professional deliveries, from the companies I co-own, and three course projects still standing.",
+      "Six professional deliveries through the companies I co-own and three study projects.",
     by: "Delivered by",
     all: "See all projects",
     panelTop: ["Scope", "Code"] as [string, string],
@@ -413,7 +441,7 @@ export const enUS = {
     },
   },
   projects: {
-    label: "Seven projects, each with a written case",
+    label: "Nine projects, each with a written case",
     title: "None of them started ",
     highlight: "finished.",
     table: { projeto: "Project", oQueE: "What it is", grupo: "Group" },
@@ -427,6 +455,34 @@ export const enUS = {
       fechar: "Close",
       aviso: "Live site. Click to browse it right here",
       emNovaAba: "Open the site",
+    },
+    registraPreview: {
+      eyebrow: "Interactive case · Android app",
+      open: "Explore the flow",
+      close: "Close",
+      coverTitle: "Records continue without a signal.",
+      coverBody: "From a paper form to a document with verifiable authorship and integrity.",
+      illustration: "Illustrative demo, with no client data",
+      stages: ["Capture", "Offline", "Signing"] as [string, string, string],
+      titles: [
+        "From paper to tablet.",
+        "Work does not wait for a connection.",
+        "Every record leaves proof.",
+      ] as [string, string, string],
+      captions: [
+        "Self-monitoring forms gain digital fields for work on a tablet.",
+        "Filling and local storage continue even when the connection drops.",
+        "On finalisation, the signature and hash make authorship and integrity verifiable.",
+      ] as [string, string, string],
+      actions: ["Continue offline", "Finalise record", "Start again"] as [string, string, string],
+      paper: "Control form",
+      form: "Self-monitoring record",
+      field: "Verification",
+      note: "Observation",
+      local: "Saved on device",
+      pending: "Waiting for connection",
+      final: "Record finalised",
+      verified: "Integrity verified",
     },
     groups: {
       trabalho: "Work",
@@ -515,7 +571,7 @@ export const enUS = {
     title: "Where the conversation ",
     highlight: "starts.",
     description:
-      "A new digital product through SoftCode, or the ProOps ERP: either way, it starts with the same email.",
+      "A digital product through SoftCode or a ProOps solution: either way, it starts with the same email.",
     button: "Write an email",
     networks: "Networks",
     from: "Where the work comes from",

@@ -1,13 +1,11 @@
 import type { NextConfig } from "next";
 import { portfolioProjects } from "./src/data/projects";
 
-/**
- * As origens que o card de destaque embute ao vivo. Derivadas do dado, e não
- * escritas à mão: um projeto novo em `projects.ts` já entra na política, e um
- * `frame-src` desatualizado deixaria a janela em branco sem dizer por quê.
- */
+/** Só as origens dos sites realmente incorporados na janela viva. */
 const ORIGENS_EMBUTIDAS = [
-  ...new Set(portfolioProjects.map((p) => new URL(p.link).origin)),
+  ...new Set(portfolioProjects.flatMap((p) =>
+    p.link && !p.preview ? [new URL(p.link).origin] : [],
+  )),
 ].sort();
 
 // `next dev` precisa de eval para o refresh do Turbopack; produção não. A

@@ -69,15 +69,17 @@ export function CaseStudyView({
         <p className="max-w-[52ch] type-m-16 leading-relaxed text-ink/55">
           {project.descricao[locale]}
         </p>
-        <a
-          href={project.link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex w-fit items-center gap-12 border-b border-line pb-4 type-m-16 uppercase tracking-[0.2em] text-ink transition-colors duration-300 hover:border-accent hover:text-accent motion-reduce:transition-none"
-        >
-          {t.caseStudy.visit}
-          <span aria-hidden>↗</span>
-        </a>
+        {project.link && (
+          <a
+            href={project.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex w-fit items-center gap-12 border-b border-line pb-4 type-m-16 uppercase tracking-[0.2em] text-ink transition-colors duration-300 hover:border-accent hover:text-accent motion-reduce:transition-none"
+          >
+            {t.caseStudy.visit}
+            <span aria-hidden>↗</span>
+          </a>
+        )}
       </header>
 
       {blocks.map(({ label, body }) => (

@@ -78,7 +78,7 @@ describe("aggregateStack (SEC-13)", () => {
       (tecnologia) => tecnologia.nome === "Next.js",
     );
 
-    expect(next?.entregas).toEqual(["SoftCode", "Barbalog", "LyftConnect", "ProOps"]);
+    expect(next?.entregas).toEqual(["SoftCode", "Barbalog", "LyftConnect", "ProOps ERP"]);
   });
 
   // Exercício de curso não tem `case`, então não tem stack para agregar.

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { JanelaViva } from "@/components/ui/JanelaViva";
+import { RegistraInterativo } from "@/components/ui/RegistraInterativo";
 import { LinkDeRota as Link } from "@/components/ui/LinkDeRota";
 import { portfolioProjects, type Project } from "@/data/projects";
 import { useTranslations } from "@/hooks/useTranslations";
@@ -55,26 +56,13 @@ const TODOS = [
 ];
 
 /**
- * **Uma janela, oito projetos.**
+ * **Todos os projetos de uma vez, em grade.**
  *
- * A primeira versão empilhava um card por projeto: com a janela em largura
- * cheia isso dava oito telas de rolagem só para o destaque, e o rótulo dizia
- * "oito projetos" enquanto o bloco mostrava três. Agora a moldura é uma só e a
- * fileira de nomes acima dela troca quem está dentro: todos os oito ficam
- * visíveis de uma vez, e a página encolheu para uma tela.
- *
- * A fileira é a mesma gramática do resto: mono caps, filete embaixo, e o ativo
- * em cor cheia contra `/55` dos outros.
- */
-/**
- * **Todos os oito de uma vez, em grade.**
- *
- * A primeira versão empilhava um card de largura cheia por projeto: oito telas
- * de rolagem só para o destaque. A segunda trocou por um menu de abas, que
- * mostrava um de cada vez e escondia sete. A grade resolve as duas coisas:
+ * A primeira versão empilhava um card de largura cheia por projeto. A segunda
+ * trocou por um menu de abas. A grade deixa os nove cases visíveis:
  * duas colunas no desktop, uma no estreito, e nada escondido.
  *
- * **Só uma janela viva por vez.** Oito `<iframe>` de terceiros abertos juntos
+ * **Só uma janela incorporada por vez.** Vários `<iframe>` de terceiros juntos
  * seriam oito sites carregando na mesma aba; abrir uma fecha a anterior, e o
  * estado mora aqui por isso.
  */
@@ -126,27 +114,33 @@ function Destaque() {
               </p>
             </div>
 
-            <JanelaViva
-              src={project.link}
-              /* O caminho declarado no dado, não `/projects/${slug}.png`
-                 montado aqui: o caminho montado supunha um arquivo que o dado
-                 não declarava, e a LyftConnect tinha exatamente esse par —
-                 `lyftconnect.png` no disco e nenhum `screenshot` no dado. Esta
-                 tela pintava, as outras não, com a mesma fonte de verdade
-                 dizendo coisas diferentes conforme quem perguntava. */
-              poster={project.screenshot}
-              titulo={project.nome}
-              abrir={t.projects.janela.abrir}
-              fechar={t.projects.janela.fechar}
-              aviso={t.projects.janela.aviso}
-              emNovaAba={t.projects.janela.emNovaAba}
-              viva={viva === project.slug}
-              aoAlternar={() =>
-                setViva((atual) =>
-                  atual === project.slug ? null : project.slug,
-                )
-              }
-            />
+            {project.preview === "interactive" ? (
+              <RegistraInterativo
+                aberto={viva === project.slug}
+                aoAlternar={() =>
+                  setViva((atual) =>
+                    atual === project.slug ? null : project.slug,
+                  )
+                }
+              />
+            ) : (
+              <JanelaViva
+                src={project.link}
+                poster={project.screenshot}
+                posterUnoptimized={project.screenshotUnoptimized}
+                titulo={project.nome}
+                abrir={t.projects.janela.abrir}
+                fechar={t.projects.janela.fechar}
+                aviso={t.projects.janela.aviso}
+                emNovaAba={t.projects.janela.emNovaAba}
+                viva={viva === project.slug}
+                aoAlternar={() =>
+                  setViva((atual) =>
+                    atual === project.slug ? null : project.slug,
+                  )
+                }
+              />
+            )}
           </li>
         );
       })}

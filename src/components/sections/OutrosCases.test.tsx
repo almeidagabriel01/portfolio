@@ -45,7 +45,7 @@ describe("outrosCases (SEC-14)", () => {
   it("exclui o projeto atual e mantém todos os outros", () => {
     expect(
       outrosCases(portfolioProjects, "barbalog").map((project) => project.slug),
-    ).toEqual(["alura-space", "store-flow", "ola-mundo", "softcode", "lyftconnect", "proops"]);
+    ).toEqual(["alura-space", "store-flow", "ola-mundo", "softcode", "lyftconnect", "proops", "proops-app", "registra"]);
   });
 
   it("sendo o único projeto, não sobra nenhum outro", () => {
@@ -65,7 +65,7 @@ describe("<OutrosCases /> (SEC-14)", () => {
 
     expect(
       screen.getAllByRole("heading", { level: 3 }).map((node) => node.textContent),
-    ).toEqual(["Alura Space", "Store Flow", "Olá Mundo", "SoftCode", "LyftConnect", "ProOps"]);
+    ).toEqual(["Alura Space", "Store Flow", "Olá Mundo", "SoftCode", "LyftConnect", "ProOps ERP", "ProOps App", "Registra"]);
     expect(screen.queryByText("Barbalog")).toBeNull();
   });
 
