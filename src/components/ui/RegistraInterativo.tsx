@@ -265,7 +265,7 @@ export function RegistraInterativo({
                 {aberto ? copy.captions[etapa] : copy.coverBody}
               </p>
             </div>
-            {aberto ? (
+            {aberto && (
               <div className="mt-22 flex flex-wrap items-center gap-14 lg:mt-30">
                 <button
                   type="button"
@@ -285,15 +285,12 @@ export function RegistraInterativo({
                   0{etapa + 1} / 03
                 </span>
               </div>
-            ) : (
-              <span className="mt-22 inline-flex items-center gap-8 rounded-[8px] bg-[#e0a82e] px-14 py-11 type-button uppercase text-[#1a1300] lg:mt-30">
-                {copy.open}
-                <ArrowRight aria-hidden size={16} />
-              </span>
             )}
-            <p className="mt-16 max-w-[34ch] type-sub leading-relaxed text-[#9aa3b5]">
-              {copy.illustration}
-            </p>
+            {aberto && (
+              <p className="mt-16 max-w-[34ch] type-sub leading-relaxed text-[#9aa3b5]">
+                {copy.illustration}
+              </p>
+            )}
           </div>
           <div className="relative flex min-h-0 items-center justify-center lg:size-full">
             <TelaAndroid etapa={aberto ? etapa : 0} copy={copy} />
@@ -302,10 +299,21 @@ export function RegistraInterativo({
         {!aberto && (
           <button
             type="button"
+            data-registra-cover
             aria-label={`${copy.open} · Registra`}
             onClick={alternar}
-            className="absolute inset-0 z-20 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-[-5px] focus-visible:outline-[#e0a82e]"
-          />
+            className="group/janela absolute inset-0 z-20 flex flex-col items-start justify-end bg-black/30 p-16 text-left transition-colors duration-300 hover:bg-black/35 focus-visible:outline-2 focus-visible:outline-offset-[-5px] focus-visible:outline-[#e0a82e] motion-reduce:transition-none"
+          >
+            <span className="flex max-w-[240px] flex-col gap-10 rounded-[0.6rem] border border-white/20 bg-[#111]/95 px-16 py-14 text-white shadow-[0_12px_32px_#0005] transition-transform duration-300 group-hover/janela:translate-y-[-2px] motion-reduce:transition-none">
+              <span className="text-[15px] font-medium leading-[1.35] text-white">
+                {copy.previewNotice}
+              </span>
+              <span className="flex items-center gap-8 type-button uppercase text-white">
+                {copy.open}
+                <span aria-hidden>→</span>
+              </span>
+            </span>
+          </button>
         )}
       </div>
     </div>
