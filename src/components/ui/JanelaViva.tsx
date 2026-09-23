@@ -130,11 +130,14 @@ export function JanelaViva({
             <button
               type="button"
               onClick={aoAlternar}
-              className="group/janela absolute inset-0 flex flex-col items-center justify-center gap-16 bg-black/45 px-24 text-center transition-colors duration-300 hover:bg-black/25 focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none"
+              className="group/janela absolute inset-0 flex flex-col items-start justify-end p-16 text-left transition-colors duration-300 hover:bg-black/5 focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none"
             >
-              <span className="type-eyebrow text-ink">{aviso}</span>
-              <span className="flex items-center gap-8 rounded-[0.4rem] bg-ink/8 px-16 py-8 type-button uppercase text-ink backdrop-blur-sm transition-transform duration-300 group-hover/janela:scale-105 motion-reduce:transition-none">
-                {abrir}
+              <span className="flex rounded-[0.6rem] border border-white/15 bg-[#111]/95 px-14 py-11 text-white shadow-[0_12px_32px_#0005] transition-transform duration-300 group-hover/janela:translate-y-[-2px] motion-reduce:transition-none">
+                <span className="sr-only">{aviso}</span>
+                <span className="flex items-center gap-8 type-button uppercase text-white">
+                  {abrir}
+                  <span aria-hidden>→</span>
+                </span>
               </span>
               <span className="sr-only">{titulo}</span>
             </button>
