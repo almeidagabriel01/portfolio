@@ -68,46 +68,6 @@ export interface Project {
 
 export const portfolioProjects: Project[] = [
   {
-    slug: "alura-space",
-    video: "/projects/alura-space.webm",
-    videoMp4: "/projects/alura-space.mp4",
-    poster: "/projects/alura-space-poster.webp",
-    screenshot: "/projects/alura-space.png",
-    nome: "Alura Space",
-    link: "https://alura-space-ecru.vercel.app/",
-    grupo: "estudo",
-    descricao: {
-      pt: "Galeria espacial com filtro por tags, construída com CSS Modules.",
-      en: "Space gallery with tag filtering, built with CSS Modules.",
-    },
-    // Redigido a partir do que a página faz, medido ao vivo por Playwright em
-    // 2026-08-11 (contagem de cards por tag, classes do CSS servido, bundle).
-    // Não há repositório público: a página é a única fonte primária.
-    case: {
-      contexto: {
-        pt: "Exercício de curso da Alura: uma galeria de fotos do espaço em que o acervo se filtra por tag. O foco do estudo é composição de componentes com CSS Modules, sem framework de estilo e sem roteamento.",
-        en: "An Alura course exercise: a gallery of space photography whose collection filters by tag. The focus of the study is component composition with CSS Modules, with no styling framework and no routing.",
-      },
-      papel: {
-        pt: "Estudo próprio, sem cliente. Front-end inteiro a partir do material do curso, incluindo a marcação, o estilo por componente e o estado do filtro.",
-        en: "A study of my own, with no client. The whole front-end from the course material: markup, per-component styling and the filter state.",
-      },
-      stack: ["React", "CSS Modules", "Create React App"],
-      destaques: {
-        pt: [
-          "O filtro particiona a galeria por inteiro: Galáxias (3), Estrelas (4), Lua (1) e Nebulosas (2) somam exatamente as 10 fotos do acervo.",
-          "CSS Modules com escopo por componente (Banner, Galeria, Menu, Populares, Tags), sem Sass e sem biblioteca de estilo.",
-          "Página única, sem roteamento nenhum. É o contraponto deliberado do Olá Mundo, feito na mesma leva de estudos.",
-        ],
-        en: [
-          "The filter partitions the whole gallery: Galaxies (3), Stars (4), Moon (1) and Nebulae (2) add up to exactly the 10 photos in the collection.",
-          "CSS Modules scoped per component (Banner, Gallery, Menu, Popular, Tags), with no Sass and no styling library.",
-          "A single page, with no routing at all. It is the deliberate counterpoint to Olá Mundo, built in the same batch of studies.",
-        ],
-      },
-    },
-  },
-  {
     slug: "store-flow",
     video: "/projects/store-flow.webm",
     videoMp4: "/projects/store-flow.mp4",
@@ -144,49 +104,6 @@ export const portfolioProjects: Project[] = [
           "A three-step checkout (delivery, payment and review), validated step by step through React Hook Form and Zod.",
           "Catalogue served by the FakeStore API, with product detail in a modal and the cart total recalculated in real time.",
           "Light/dark theme persisted in `localStorage`, plus accessibility through alt text, `aria-label` and keyboard navigation.",
-        ],
-      },
-    },
-  },
-  {
-    slug: "ola-mundo",
-    video: "/projects/ola-mundo.webm",
-    videoMp4: "/projects/ola-mundo.mp4",
-    poster: "/projects/ola-mundo-poster.webp",
-    screenshot: "/projects/ola-mundo.png",
-    nome: "Olá Mundo",
-    link: "https://alura-ola-mundo.vercel.app/",
-    grupo: "estudo",
-    descricao: {
-      pt: "Blog de tecnologia com React Router e rotas dinâmicas por post.",
-      en: "Technology blog with React Router and dynamic per-post routes.",
-    },
-    // Medido ao vivo por Playwright em 2026-08-11: as rotas `/posts/1..8`
-    // resolvem e `/posts/9` cai no 404; a navegação não pede documento novo.
-    // Sem repositório público. Os textos dos oito posts vêm do curso, e por
-    // isso o case não os atribui ao Gabriel.
-    case: {
-      contexto: {
-        pt: "Exercício de curso da Alura: um blog de tecnologia com oito posts, cada um na própria rota. O foco do estudo é roteamento no cliente, e é o que a página exercita de ponta a ponta.",
-        en: "An Alura course exercise: a technology blog with eight posts, each on its own route. The focus of the study is client-side routing, and that is what the page exercises end to end.",
-      },
-      papel: {
-        pt: "Estudo próprio, sem cliente. Montei o roteamento, o layout compartilhado e a renderização dos posts a partir do material do curso. Os textos dos posts são do curso; a página \"sobre mim\" é minha.",
-        en: "A study of my own, with no client. I built the routing, the shared layout and the post rendering from the course material. The post texts come from the course; the \"about me\" page is mine.",
-      },
-      stack: ["React", "React Router", "react-markdown", "CSS Modules", "Create React App"],
-      destaques: {
-        pt: [
-          "Quatro rotas sobre um layout compartilhado: home, post, sobre mim e uma página 404 dedicada.",
-          "Rota dinâmica por post (`/posts/:id`), com navegação no cliente que não pede documento novo e deep link que sobrevive ao recarregamento.",
-          "Conteúdo de cada post renderizado como markdown, com subtítulos, listas, imagens e links externos.",
-          "Cada post fecha com quatro recomendações de leitura, que é o que costura os oito num blog em vez de oito páginas soltas.",
-        ],
-        en: [
-          "Four routes over a shared layout: home, post, about me and a dedicated 404 page.",
-          "A dynamic route per post (`/posts/:id`), with client-side navigation that never requests a new document and deep links that survive a reload.",
-          "Each post's body rendered as markdown, with subheadings, lists, images and external links.",
-          "Every post closes with four reading recommendations, which is what stitches the eight into a blog rather than eight loose pages.",
         ],
       },
     },

@@ -57,7 +57,7 @@ for (const viewport of VIEWPORTS) {
         return { headerCells, rows: rowGeometry, isDesktop };
       }, viewport.width >= 768);
 
-      expect(geometry.rows).toHaveLength(9);
+      expect(geometry.rows).toHaveLength(7);
       for (const row of geometry.rows) {
         expect(row.cells).toHaveLength(3);
         expect(row.cells.every((cell) => cell.withinRow)).toBe(true);

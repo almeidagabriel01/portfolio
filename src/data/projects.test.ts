@@ -46,7 +46,7 @@ describe("modelo de três grupos (SEC-17)", () => {
 });
 
 // SEC-17, os dois lados da invariante. Sem o lado negativo, um `entreguePor`
-// vazando para um exercício de curso renderizaria "Alura Space · SoftCode".
+// vazando para um exercício de curso renderizaria "Store Flow · SoftCode".
 // Sem o positivo, uma entrega sem atribuição renderiza rótulo vazio (SEC-18).
 describe("invariante entreguePor (SEC-17)", () => {
   it("toda entrega de produto ou cliente declara quem entregou", () => {
@@ -71,7 +71,7 @@ describe("invariante entreguePor (SEC-17)", () => {
       (project) => project.grupo === "estudo",
     );
 
-    expect(estudos).toHaveLength(3);
+    expect(estudos).toHaveLength(1);
     for (const project of estudos) {
       expect(
         project.entreguePor,
@@ -92,45 +92,16 @@ describe("invariante entreguePor (SEC-17)", () => {
   });
 });
 
-// C1 (SEC-06): "Projects Alpha" era o nome da URL da Vercel, não do projeto.
-
-// C2 (SEC-07): faltava o Olá Mundo. São 5 estudos, não 4.
-describe("correção C2: Olá Mundo e os estudos (SEC-07)", () => {
-  // AluraBooks e Alura Feira saíram do portfólio a pedido do Gabriel: eram
-  // dois de cinco exercícios do mesmo curso, e repetir a mesma prova quatro
-  // vezes não acrescenta nada a quem lê.
-  it("os estudos são três, com o Olá Mundo entre eles", () => {
+describe("estudos restantes (SEC-07)", () => {
+  it("Store Flow é o único estudo listado", () => {
     const estudos = portfolioProjects
       .filter((project) => project.grupo === "estudo")
       .map((project) => project.nome);
-    expect(estudos).toEqual(["Alura Space", "Store Flow", "Olá Mundo"]);
+    expect(estudos).toEqual(["Store Flow"]);
   });
 
-  it("o Olá Mundo aponta para a URL ao vivo e cita React Router", () => {
-    const olaMundo = bySlug("ola-mundo");
-    expect(olaMundo?.link).toBe("https://alura-ola-mundo.vercel.app/");
-    expect(olaMundo?.descricao.pt).toContain("React Router");
-    expect(olaMundo?.descricao.en).toContain("React Router");
-  });
-});
-
-// C6 (SEC-06/SEC-07): cada estudo tem foco técnico próprio. O LinkedIn nomeia o
-// foco de quatro dos cinco; o Store Flow não tem fonte para um foco novo e
-// mantém a descrição herdada: inventar um seria afirmação sem fonte (AD-001).
-describe("correção C6: foco técnico por estudo", () => {
-  it.each([
-    ["alura-space", "filtro por tags", "tag filtering"],
-    ["ola-mundo", "rotas dinâmicas", "dynamic"],
-  ])("%s cita seu foco técnico nos dois idiomas", (slug, pt, en) => {
-    expect(bySlug(slug)?.descricao.pt).toContain(pt);
-    expect(bySlug(slug)?.descricao.en).toContain(en);
-  });
-
-  it("nenhum estudo repete a descrição de outro", () => {
-    const descricoes = portfolioProjects
-      .filter((project) => project.grupo === "estudo")
-      .map((project) => project.descricao.pt);
-    expect(new Set(descricoes).size).toBe(descricoes.length);
+  it("o estudo restante mantém o link ao vivo", () => {
+    expect(bySlug("store-flow")?.link).toBe("https://store-flow-pink.vercel.app/");
   });
 });
 
@@ -157,8 +128,8 @@ describe("descrições sem correção na v3 permanecem intactas", () => {
     expect(bySlug(slug)?.descricao).toEqual({ pt, en });
   });
 
-  it("a lista contém os nove projetos", () => {
-    expect(portfolioProjects).toHaveLength(9);
+  it("a lista contém os sete projetos", () => {
+    expect(portfolioProjects).toHaveLength(7);
   });
 
   it("toda descrição está preenchida nos dois idiomas", () => {
@@ -184,9 +155,7 @@ describe("conteúdo de case (PORT-14)", () => {
         .filter((project) => project.case)
         .map((project) => project.slug),
     ).toEqual([
-      "alura-space",
       "store-flow",
-      "ola-mundo",
       "softcode",
       "barbalog",
       "lyftconnect",
@@ -430,17 +399,8 @@ describe("screenshots do carrossel (UI-09)", () => {
     }
   });
 
-  /**
-   * A grade da home é `[...profissionais, ...estudos].slice(0, 6)`, e o texto
-   * dela afirma **"três entregas de cliente … e três exercícios de curso"**.
-   * Nada liga as duas coisas: acrescentar um quarto projeto profissional faria
-   * a grade virar 4 + 2 com a frase ainda prometendo 3 + 3, o mesmo defeito de
-   * rótulo-que-não-bate-com-valor que o SEC-18 nomeia, só que na copy.
-   *
-   * Quando este teste reprovar, o conserto é o texto de `deliveries.description`
-   * nos dois idiomas, não o número aqui.
-   */
-  it("a composição da grade da home bate com o que a copy promete", () => {
+  /** A home mostra as entregas; a lista completa mantém o estudo restante. */
+  it("a lista contém seis entregas profissionais e um estudo", () => {
     const profissionais = portfolioProjects.filter((p) => p.grupo !== "estudo");
     const estudos = portfolioProjects.filter((p) => p.grupo === "estudo");
 
@@ -448,6 +408,6 @@ describe("screenshots do carrossel (UI-09)", () => {
       profissionais,
       "a copy diz seis entregas profissionais",
     ).toHaveLength(6);
-    expect(estudos, "a copy diz três projetos de estudo").toHaveLength(3);
+    expect(estudos).toHaveLength(1);
   });
 });

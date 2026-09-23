@@ -51,7 +51,7 @@ export function JanelaViva({
   const host = src ? new URL(src).host.replace(/^www\./, "") : titulo;
 
   return (
-    <div className="flex flex-col overflow-clip rounded-[1.6rem] border border-line bg-surface">
+    <div className="flex min-w-0 flex-col overflow-clip rounded-[1.6rem] border border-line bg-surface">
       {/*
         A barra é a única superfície nossa dentro do quadro quando o site está
         vivo: o ponteiro dentro do retângulo pertence a ele, então sem ela não

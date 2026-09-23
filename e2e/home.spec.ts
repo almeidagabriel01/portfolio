@@ -103,7 +103,7 @@ test.describe("Rota /: hero", () => {
   test.describe("mídia do carrossel", () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
-    /** Os dois apps novos mostram imagem; as sete gravações reais mantêm poster. */
+    /** Os dois apps mostram imagem; as quatro gravações da home mantêm poster. */
     test("gravações reais usam vídeo e os dois apps usam imagem", async ({
       page,
     }) => {
@@ -111,8 +111,8 @@ test.describe("Rota /: hero", () => {
       const secao = 'section[aria-labelledby="entregas"]';
       await page.locator(`${secao} video`).first().scrollIntoViewIfNeeded();
 
-      expect(await page.locator(`${secao} ul li`).count()).toBe(9);
-      expect(await page.locator(`${secao} video`).count()).toBe(7);
+      expect(await page.locator(`${secao} ul li`).count()).toBe(6);
+      expect(await page.locator(`${secao} video`).count()).toBe(4);
       expect(await page.locator(`${secao} img`).count()).toBe(2);
 
       // Vídeo sem poster abriria a caixa cinza no primeiro quadro. O atributo
@@ -528,7 +528,7 @@ const ENTREGAS_REGIAO = {
   en: "What I built.",
 };
 test.describe("Rota /: seção de entregas (SEC-10, SEC-18)", () => {
-  test("a grade tem os nove projetos, entregas antes de estudos", async ({
+  test("a grade destaca as seis entregas profissionais", async ({
     page,
   }) => {
     await page.goto("/");
@@ -545,13 +545,10 @@ test.describe("Rota /: seção de entregas (SEC-10, SEC-18)", () => {
       "ProOps ERP",
       "ProOps App",
       "Registra",
-      "Alura Space",
-      "Store Flow",
-      "Olá Mundo",
     ]);
 
     // A atribuição por entrega, na ordem, não só "SoftCode aparece em algum
-    // lugar da seção". Os três estudos entram sem atribuição nenhuma.
+    // lugar da seção".
     expect(
       await entregas
         .locator("[data-entregue-por]")
@@ -562,9 +559,7 @@ test.describe("Rota /: seção de entregas (SEC-10, SEC-18)", () => {
   });
 
   /**
-   * As células são `[...profissionais, ...estudos]`, e desde que os estudos
-   * ganharam case page **todas** linkam para dentro. Era quatro: os estudos
-   * apontavam para fora.
+   * As seis células profissionais linkam para seus cases.
    */
   test("cada entrega linka para a sua case page", async ({ page }) => {
     await page.goto("/");
@@ -581,9 +576,6 @@ test.describe("Rota /: seção de entregas (SEC-10, SEC-18)", () => {
       "/projects/proops",
       "/projects/proops-app",
       "/projects/registra",
-      "/projects/alura-space",
-      "/projects/store-flow",
-      "/projects/ola-mundo",
     ]);
   });
 

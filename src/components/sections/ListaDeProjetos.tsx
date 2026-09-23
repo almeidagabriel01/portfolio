@@ -26,7 +26,7 @@ import { useStore } from "@/store";
  * **O alternador destaque/todos não entrou.** Ele seria âncora (os
  * dois botões são `<a>`, os dois blocos existem sempre, e o que os separa é
  * `scroll-mt-*`), e a barra apareceria duas vezes, uma no fluxo e uma cópia
- * `fixed bottom-30`. Sobre centenas de itens isso resolve; sobre oito projetos que
+ * `fixed bottom-30`. Sobre centenas de itens isso resolve; sobre sete projetos que
  * cabem na mesma rolagem, era um controle que não controlava nada. Decisão do
  * Gabriel, e o AD-028 já dizia isso: o que não serve na tela não entra.
  */
@@ -56,14 +56,14 @@ const TODOS = [
 ];
 
 /**
- * **Todos os projetos de uma vez, em grade.**
+ * **Todos os projetos em uma lista editorial.**
  *
  * A primeira versão empilhava um card de largura cheia por projeto. A segunda
- * trocou por um menu de abas. A grade deixa os nove cases visíveis:
- * duas colunas no desktop, uma no estreito, e nada escondido.
+ * trocou por um menu de abas. Cada linha dá mais largura à experiência ao vivo:
+ * texto na lateral em telas grandes e acima da janela nas menores.
  *
  * **Só uma janela incorporada por vez.** Vários `<iframe>` de terceiros juntos
- * seriam oito sites carregando na mesma aba; abrir uma fecha a anterior, e o
+ * seriam sete sites carregando na mesma aba; abrir uma fecha a anterior, e o
  * estado mora aqui por isso.
  */
 function Destaque() {
@@ -72,11 +72,14 @@ function Destaque() {
   const [viva, setViva] = useState<string | null>(null);
 
   return (
-    <ul className="w-calc grid gap-50 md:grid-cols-2 md:gap-x-32 md:gap-y-50">
+    <ul className="w-calc flex flex-col">
       {TODOS.map((project) => {
         return (
-          <li key={project.slug} className="flex flex-col gap-24">
-            <div className="flex flex-col gap-8">
+          <li
+            key={project.slug}
+            className="grid min-w-0 gap-24 border-b border-line py-50 first:border-t xl:grid-cols-[minmax(0,0.28fr)_minmax(0,0.72fr)] xl:gap-50"
+          >
+            <div className="flex min-w-0 flex-col gap-8 xl:pt-12">
               {/*
                 O selo é a primeira coisa da linha por decisão: sem ele a grade
                 punha exercício de curso e entrega para cliente lado a lado, do

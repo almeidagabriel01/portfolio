@@ -16,34 +16,25 @@ import { EASE } from "@/lib/motion";
 import { useStore } from "@/store";
 
 /**
- * A grade mostra todos os nove projetos: duas fileiras de entregas
- * profissionais e uma de estudos, com três células por fileira.
+ * A home destaca as seis entregas profissionais em três fileiras de duas.
+ * O Store Flow continua na página de projetos, acessível pelo botão do painel.
  *
- * Antes daqui saía um `.slice(0, 6)` que deixava um estudo de fora, e o rótulo
- * dizia "Seis projetos publicados" enquanto `/projects` listava sete.
- *
- * As duas fileiras têm a mesma altura, definida pelo conteúdo mais longo.
+ * As três fileiras têm a mesma altura, definida pelo conteúdo mais longo.
  * O painel acompanha a grade, sem limitar o espaço das descrições.
  */
 const PROFISSIONAIS = portfolioProjects.filter(
   (project) => project.grupo !== "estudo",
 );
-const ESTUDOS = portfolioProjects.filter(
-  (project) => project.grupo === "estudo",
-);
-const NA_GRADE: Project[] = [...PROFISSIONAIS, ...ESTUDOS];
+const NA_GRADE: Project[] = PROFISSIONAIS;
 
 /**
-   * Quantas células cada fileira tem. O recorte da mídia sai daqui; ao adicionar
-   * projetos, esta lista e o `col-span-4` da grade precisam ser revistos juntos.
+ * Quantas células cada fileira tem. O recorte da mídia sai daqui; ao adicionar
+ * projetos, esta lista e o `col-span-6` da grade precisam ser revistos juntos.
  *
- * **A grade em si é CSS** (`grid-cols-12`, cada célula em `col-span-4`):
- * classe do Tailwind é texto-fonte, não dá
- * para montar por template. Mudando o número de projetos de um grupo, é lá que
- * o span acompanha — e 12 só divide bem por 4 e por 3.
+ * **A grade em si é CSS** (`grid-cols-12`, cada célula em `col-span-6`):
+ * classe do Tailwind é texto-fonte, não dá para montar por template.
  */
-// Nove projetos: duas fileiras profissionais e uma de estudos, três por linha.
-const CELULAS_POR_FILEIRA = [3, 3, 3] as const;
+const CELULAS_POR_FILEIRA = [2, 2, 2] as const;
 
 /**
  * As transições da célula, que **não** são a mesma de propósito.
@@ -82,8 +73,7 @@ const FILEIRAS = CELULAS_POR_FILEIRA.length;
 
 /**
  * Onde a célula `indice` fica na malha, em fração de 0 a 1: qual fileira e que
- * faixa horizontal ela ocupa. As fileiras têm contagens diferentes (4 e 3),
- * então a largura da célula depende de qual delas é.
+ * faixa horizontal ela ocupa. A largura depende da contagem de cada fileira.
  */
 function lugarDaCelula(indice: number) {
   let fileira = 0;
@@ -162,7 +152,7 @@ const LinkAnimado = motion.create(Link);
  *    piscando sozinho.
  * 2. **A mídia é uma só e é irmã da malha**, cobrindo todas as células de uma
  *    vez. É isso que faz o hover parecer que a grade abriu uma janela, em vez
- *    de sete janelinhas independentes.
+ *    de seis janelinhas independentes.
  *
  * Não temos wordmark das marcas, e inventar um asset seria mentir sobre elas: o
  * nome ocupa a caixa do logo (20px de altura, 120 de largura).
@@ -204,7 +194,7 @@ export function Entregas() {
    *
    * **Um observador no bloco, não um por cartão.** O cartão vive num trilho com
    * `overflow-x`, e a intersecção é calculada contra o recorte de **todo**
-   * ancestral que rola: o sétimo cartão, a ~1.800px à direita, nunca
+   * ancestral que rola: um cartão distante no trilho nunca
    * "intersecta" a viewport por mais folga de `rootMargin` que se dê — medido,
    * `9999px` na horizontal não muda um bit. O que se quer saber é outra coisa,
    * e é do bloco: ele está perto o bastante para o visitante alcançar qualquer
@@ -292,7 +282,7 @@ export function Entregas() {
       >
         <div className="relative">
           {/*
-            A mídia: um vídeo do site rolando, montado no hover, cobrindo as
+            A mídia: um vídeo do site rolando, montado no hover, cobrindo
             as células, a mesma construção. Imagem parada lê
             como screenshot colado; é o movimento que faz a grade parecer ter
             aberto uma janela.
@@ -419,15 +409,15 @@ export function Entregas() {
               muda.
 
               O trilho é flex com snap no estreito (cartões de 265px
-              centrados) e vira malha de três colunas no largo.
+              centrados) e vira malha de duas colunas no largo.
             */
             /*
-              No largo, três fileiras de três: `grid-cols-12` com todas as
-              células em `col-span-4`. A variante mantém o
+              No largo, três fileiras de duas: `grid-cols-12` com todas as
+              células em `col-span-6`. A variante mantém o
               trilho único que o estreito precisa para o snap — duplicar a
               marcação custaria dois lugares para corrigir a cada entrega nova.
             */
-            classeDoTrilho="gap-32 px-[calc((100vw-26.5rem)*0.5)] scroll-px-[calc((100vw-26.5rem)*0.5)] lg:grid lg:auto-rows-fr lg:grid-cols-12 lg:cursor-auto lg:select-text lg:gap-0 lg:overflow-visible lg:px-0 lg:[&>*]:col-span-4"
+            classeDoTrilho="gap-32 px-[calc((100vw-26.5rem)*0.5)] scroll-px-[calc((100vw-26.5rem)*0.5)] lg:grid lg:auto-rows-fr lg:grid-cols-12 lg:cursor-auto lg:select-text lg:gap-0 lg:overflow-visible lg:px-0 lg:[&>*]:col-span-6"
             classeDoItem="w-265 min-w-0 shrink-0 snap-center lg:w-full"
             // Os pontos não têm o que navegar quando todas as células estão na
             // tela ao mesmo tempo.
